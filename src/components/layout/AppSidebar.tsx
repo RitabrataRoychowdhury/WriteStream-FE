@@ -1,6 +1,6 @@
 import {
   GitBranch, LayoutDashboard, Radio, Database, Eye, ScrollText, Settings, Gauge,
-  ChevronLeft, Zap
+  ChevronLeft, Zap, Workflow, Search
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Pipeline', path: '/', icon: GitBranch },
+  { label: 'Builder', path: '/builder', icon: Workflow },
+  { label: 'Query', path: '/query', icon: Search },
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Sources', path: '/sources', icon: Radio },
   { label: 'Sinks', path: '/sinks', icon: Database },
