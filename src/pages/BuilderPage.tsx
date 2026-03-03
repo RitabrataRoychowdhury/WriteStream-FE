@@ -4,8 +4,8 @@ import { DagCanvas } from '@/components/builder/DagCanvas';
 import { NodeConfigPanel } from '@/components/builder/NodeConfigPanel';
 import { YamlEditor } from '@/components/builder/YamlEditor';
 import { cn } from '@/lib/utils';
-import { createDefaultPipeline, pipelineToYaml, yamlToPipeline, type PipelineConfig, type PipelineNode, type PipelineEdge, type ConnectorTemplate } from '@/lib/pipelineTypes';
-import { Code, GitBranch, ChevronLeft, ChevronRight, Download, Upload, RotateCcw } from 'lucide-react';
+import { createDefaultPipeline, pipelineToYaml, yamlToPipeline, type PipelineConfig, type PipelineNode, type ConnectorTemplate } from '@/lib/pipelineTypes';
+import { Code, GitBranch, ChevronLeft, ChevronRight, Download, Upload, RotateCcw, Play, Save } from 'lucide-react';
 
 type ViewMode = 'visual' | 'yaml' | 'split';
 
@@ -13,7 +13,7 @@ export default function BuilderPage() {
   const [pipeline, setPipeline] = useState<PipelineConfig>(createDefaultPipeline);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [viewMode, setViewMode] = useState<ViewMode>('visual');
   const [yamlText, setYamlText] = useState(() => pipelineToYaml(createDefaultPipeline()));
   const [yamlError, setYamlError] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(true);
@@ -21,13 +21,11 @@ export default function BuilderPage() {
 
   const selectedNode = useMemo(() => pipeline.nodes.find(n => n.id === selectedNodeId) || null, [pipeline.nodes, selectedNodeId]);
 
-  // Sync DAG → YAML
   const syncYaml = useCallback((p: PipelineConfig) => {
     setYamlText(pipelineToYaml(p));
     setYamlError(null);
   }, []);
 
-  // Sync YAML → DAG
   const handleYamlChange = useCallback((text: string) => {
     setYamlText(text);
     const result = yamlToPipeline(text);
@@ -48,7 +46,6 @@ export default function BuilderPage() {
     });
   }, [syncYaml]);
 
-  // Node operations
   const handleMoveNode = useCallback((id: string, x: number, y: number) => {
     updatePipeline(p => ({
       ...p,
@@ -89,10 +86,14 @@ export default function BuilderPage() {
     setSelectedNodeId(null);
   }, [updatePipeline]);
 
-  // Edge operations
-  const handleStartConnect = useCallback((nodeId: string) => {
-    setConnectingFrom(nodeId);
-  }, []);
+  const handleDeleteEdge = useCallback((edgeId: string) => {
+    updatePipeline(p => ({
+      ...p,
+      edges: p.edges.filter(e => e.id !== edgeId),
+    }));
+  }, [updatePipeline]);
+
+  const handleStartConnect = useCallback((nodeId: string) => setConnectingFrom(nodeId), []);
 
   const handleEndConnect = useCallback((targetId: string) => {
     if (connectingFrom && connectingFrom !== targetId) {
@@ -107,18 +108,14 @@ export default function BuilderPage() {
     setConnectingFrom(null);
   }, [connectingFrom, pipeline.edges, updatePipeline]);
 
-  const handleCancelConnect = useCallback(() => {
-    setConnectingFrom(null);
-  }, []);
+  const handleCancelConnect = useCallback(() => setConnectingFrom(null), []);
 
-  // Mode change
   const handleModeChange = useCallback((mode: string) => {
     const m = mode as PipelineConfig['mode'];
     setPipelineMode(m);
     updatePipeline(p => ({ ...p, mode: m }));
   }, [updatePipeline]);
 
-  // Export / Import
   const handleExportYaml = useCallback(() => {
     const blob = new Blob([yamlText], { type: 'text/yaml' });
     const url = URL.createObjectURL(blob);
@@ -137,10 +134,7 @@ export default function BuilderPage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = () => {
-        const text = reader.result as string;
-        handleYamlChange(text);
-      };
+      reader.onload = () => handleYamlChange(reader.result as string);
       reader.readAsText(file);
     };
     input.click();
@@ -156,62 +150,68 @@ export default function BuilderPage() {
   }, []);
 
   return (
-    <div className="h-full flex flex-col gap-2">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-foreground">Pipeline Builder</h1>
-          <p className="text-xs text-muted-foreground">Drag connectors to build your data pipeline • YAML ↔ DAG sync</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Mode selector */}
+    <div className="h-full flex flex-col gap-0 -m-4 md:-m-6">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-card/30 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-semibold text-foreground hidden md:block">Pipeline Builder</h1>
+          <div className="h-4 w-px bg-border/50 hidden md:block" />
           <select
             value={pipelineMode}
             onChange={(e) => handleModeChange(e.target.value)}
-            className="text-xs px-2 py-1 rounded-md border border-border/50 bg-secondary/30 text-foreground focus:outline-none"
+            className="text-xs px-2.5 py-1.5 rounded-lg border border-border/50 bg-secondary/30 text-foreground focus:outline-none focus:border-primary/50"
           >
-            <option value="pure_wal">Pure WAL Mode</option>
+            <option value="pure_wal">Pure WAL</option>
             <option value="internal_sink">Internal Sink</option>
             <option value="multi_sink">Multi-Sink</option>
           </select>
+        </div>
 
+        <div className="flex items-center gap-1">
           {/* View toggle */}
-          <div className="flex items-center rounded-md border border-border/50 overflow-hidden">
-            <button onClick={() => setViewMode('visual')} className={cn('px-2 py-1 text-xs', viewMode === 'visual' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground')}>
-              <GitBranch className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={() => setViewMode('split')} className={cn('px-2 py-1 text-xs border-x border-border/50', viewMode === 'split' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground')}>
-              Split
-            </button>
-            <button onClick={() => setViewMode('yaml')} className={cn('px-2 py-1 text-xs', viewMode === 'yaml' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground')}>
-              <Code className="h-3.5 w-3.5" />
-            </button>
+          <div className="flex items-center rounded-lg border border-border/50 overflow-hidden mr-2">
+            {(['visual', 'split', 'yaml'] as ViewMode[]).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  'px-2.5 py-1.5 text-[11px] font-medium transition-colors',
+                  viewMode === mode ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/30',
+                  mode !== 'visual' && 'border-l border-border/50'
+                )}
+              >
+                {mode === 'visual' ? <GitBranch className="h-3.5 w-3.5" /> : mode === 'yaml' ? <Code className="h-3.5 w-3.5" /> : 'Split'}
+              </button>
+            ))}
           </div>
 
-          {/* Actions */}
-          <button onClick={handleExportYaml} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Export YAML">
-            <Download className="h-3.5 w-3.5" />
-          </button>
           <button onClick={handleImportYaml} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Import YAML">
             <Upload className="h-3.5 w-3.5" />
           </button>
+          <button onClick={handleExportYaml} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Export YAML">
+            <Download className="h-3.5 w-3.5" />
+          </button>
           <button onClick={handleReset} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Reset">
             <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+          <div className="h-4 w-px bg-border/50 mx-1" />
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
+            <Play className="h-3 w-3" /> Deploy
           </button>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex gap-0 min-h-0 rounded-xl overflow-hidden border border-border/50">
+      <div className="flex-1 flex min-h-0">
         {/* Connector palette */}
         <div className={cn(
-          'shrink-0 border-r border-border/30 bg-card/30 transition-all duration-200 relative',
-          paletteOpen ? 'w-44' : 'w-10'
+          'shrink-0 border-r border-border/30 bg-card/20 transition-all duration-200 relative',
+          paletteOpen ? 'w-48' : 'w-11'
         )}>
           <ConnectorPalette onDragStart={() => {}} collapsed={!paletteOpen} />
           <button
             onClick={() => setPaletteOpen(!paletteOpen)}
-            className="absolute top-2 -right-3 z-10 w-6 h-6 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute top-3 -right-3 z-10 w-6 h-6 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shadow-sm"
           >
             {paletteOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
@@ -230,17 +230,14 @@ export default function BuilderPage() {
             onStartConnect={handleStartConnect}
             onEndConnect={handleEndConnect}
             onCancelConnect={handleCancelConnect}
+            onDeleteEdge={handleDeleteEdge}
           />
         )}
 
         {/* YAML editor */}
         {(viewMode === 'yaml' || viewMode === 'split') && (
-          <div className={cn('border-l border-border/30 bg-card/20', viewMode === 'split' ? 'w-80' : 'flex-1')}>
-            <YamlEditor
-              value={yamlText}
-              onChange={handleYamlChange}
-              error={yamlError}
-            />
+          <div className={cn('border-l border-border/30 bg-card/10', viewMode === 'split' ? 'w-96' : 'flex-1')}>
+            <YamlEditor value={yamlText} onChange={handleYamlChange} error={yamlError} />
           </div>
         )}
 
