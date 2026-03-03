@@ -73,6 +73,13 @@ export default {
           error: "hsl(var(--ws-error))",
           info: "hsl(var(--ws-info))",
         },
+        canvas: {
+          DEFAULT: "hsl(var(--canvas-bg))",
+          dot: "hsl(var(--canvas-dot))",
+        },
+        node: {
+          DEFAULT: "hsl(var(--node-bg))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
