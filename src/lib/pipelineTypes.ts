@@ -299,30 +299,68 @@ export function yamlToPipeline(yaml: string): PipelineConfig | { error: string }
   }
 }
 
-// Default pipeline
-export function createDefaultPipeline(): PipelineConfig {
-  return {
+// Mode descriptions
+export const PIPELINE_MODES: { mode: PipelineMode; label: string; description: string; icon: string }[] = [
+  { mode: 'pure_wal', label: 'Pure WAL', description: 'Write-ahead log only. No sinks — ideal for event sourcing and audit trails.', icon: 'HardDrive' },
+  { mode: 'internal_sink', label: 'Internal Sink', description: 'Single internal sink for WAL-backed queries. No external databases needed.', icon: 'Database' },
+  { mode: 'multi_sink', label: 'Multi-Sink', description: 'Fan-out to multiple databases and services. Full CDC pipeline.', icon: 'GitBranch' },
+];
+
+// Create a pipeline scaffolded for a given mode
+export function createPipelineForMode(mode: PipelineMode): PipelineConfig {
+  const base: PipelineConfig = {
     name: 'My WriteStream Pipeline',
-    mode: 'multi_sink',
-    nodes: [
-      { id: 'http_source', type: 'source', label: 'HTTP API', x: 100, y: 60, config: { port: 8080 }, sourceType: 'http', enabled: true },
-      { id: 'kafka_source', type: 'source', label: 'Kafka', x: 350, y: 60, config: { brokers: 'localhost:9092', topics: ['events'] }, sourceType: 'kafka', enabled: true },
-      { id: 'mysql_cdc', type: 'source', label: 'MySQL CDC', x: 600, y: 60, config: { host: 'localhost', port: 3306 }, sourceType: 'cdc_mysql', enabled: true },
-      { id: 'sequencer', type: 'sequencer', label: 'Sequencer', x: 350, y: 200, config: { ringBufferSize: 65536 }, enabled: true },
-      { id: 'wal', type: 'wal', label: 'WAL', x: 350, y: 320, config: { segmentSize: '256MB', fsyncInterval: '1ms' }, enabled: true },
-      { id: 'shard_1', type: 'shard', label: 'Shard 1', x: 150, y: 440, config: { bufferSize: 8192 }, enabled: true },
-      { id: 'shard_2', type: 'shard', label: 'Shard 2', x: 400, y: 440, config: { bufferSize: 8192 }, enabled: true },
-      { id: 'shard_3', type: 'shard', label: 'Shard 3', x: 650, y: 440, config: { bufferSize: 8192 }, enabled: true },
-      { id: 'pg_sink', type: 'sink', label: 'PostgreSQL', x: 60, y: 580, config: { host: 'localhost', port: 5432, batchSize: 5000 }, sinkType: 'postgresql', enabled: true },
-      { id: 'mysql_sink', type: 'sink', label: 'MySQL', x: 260, y: 580, config: { host: 'localhost', port: 3306, batchSize: 3000 }, sinkType: 'mysql', enabled: true },
-      { id: 'ch_sink', type: 'sink', label: 'ClickHouse', x: 460, y: 580, config: { host: 'localhost', port: 8123, batchSize: 50000 }, sinkType: 'clickhouse', enabled: true },
-      { id: 'reactive', type: 'reactive', label: 'Reactive Views', x: 700, y: 520, config: { maxViews: 100, persistence: true }, enabled: true },
-    ],
-    edges: [
-      { id: 'e1', from: 'http_source', to: 'sequencer' },
-      { id: 'e2', from: 'kafka_source', to: 'sequencer' },
+    mode,
+    nodes: [],
+    edges: [],
+  };
+
+  // All modes get a source + sequencer + WAL
+  const httpSource: PipelineNode = { id: 'http_source', type: 'source', label: 'HTTP API', x: 100, y: 60, config: { port: 8080 }, sourceType: 'http', enabled: true };
+  const kafkaSource: PipelineNode = { id: 'kafka_source', type: 'source', label: 'Kafka', x: 350, y: 60, config: { brokers: 'localhost:9092', topics: ['events'] }, sourceType: 'kafka', enabled: true };
+  const sequencer: PipelineNode = { id: 'sequencer', type: 'sequencer', label: 'Sequencer', x: 250, y: 200, config: { ringBufferSize: 65536 }, enabled: true };
+  const wal: PipelineNode = { id: 'wal', type: 'wal', label: 'WAL', x: 250, y: 320, config: { segmentSize: '256MB', fsyncInterval: '1ms' }, enabled: true };
+
+  base.nodes.push(httpSource, kafkaSource, sequencer, wal);
+  base.edges.push(
+    { id: 'e1', from: 'http_source', to: 'sequencer' },
+    { id: 'e2', from: 'kafka_source', to: 'sequencer' },
+    { id: 'e4', from: 'sequencer', to: 'wal' },
+  );
+
+  if (mode === 'pure_wal') {
+    // Pure WAL — no shards, no sinks, optionally reactive views
+    const reactive: PipelineNode = { id: 'reactive', type: 'reactive', label: 'Reactive Views', x: 450, y: 320, config: { maxViews: 100, persistence: true }, enabled: true };
+    base.nodes.push(reactive);
+    base.edges.push({ id: 'e_wal_rv', from: 'wal', to: 'reactive' });
+  } else if (mode === 'internal_sink') {
+    // Internal sink — shards + single internal sink
+    const shard: PipelineNode = { id: 'shard_1', type: 'shard', label: 'Shard 1', x: 250, y: 440, config: { bufferSize: 8192 }, enabled: true };
+    const internalSink: PipelineNode = { id: 'internal_sink', type: 'sink', label: 'Internal (WAL Only)', x: 200, y: 580, config: { retention: '7d', compaction: true }, sinkType: 'internal', enabled: true };
+    const reactive: PipelineNode = { id: 'reactive', type: 'reactive', label: 'Reactive Views', x: 500, y: 520, config: { maxViews: 100, persistence: true }, enabled: true };
+    base.nodes.push(shard, internalSink, reactive);
+    base.edges.push(
+      { id: 'e5', from: 'wal', to: 'shard_1' },
+      { id: 'e8', from: 'shard_1', to: 'internal_sink' },
+      { id: 'e_s1_rv', from: 'shard_1', to: 'reactive' },
+    );
+  } else {
+    // Multi-sink — shards + multiple external sinks
+    const shards: PipelineNode[] = [
+      { id: 'shard_1', type: 'shard', label: 'Shard 1', x: 100, y: 440, config: { bufferSize: 8192 }, enabled: true },
+      { id: 'shard_2', type: 'shard', label: 'Shard 2', x: 350, y: 440, config: { bufferSize: 8192 }, enabled: true },
+      { id: 'shard_3', type: 'shard', label: 'Shard 3', x: 600, y: 440, config: { bufferSize: 8192 }, enabled: true },
+    ];
+    const sinks: PipelineNode[] = [
+      { id: 'pg_sink', type: 'sink', label: 'PostgreSQL', x: 30, y: 580, config: { host: 'localhost', port: 5432, batchSize: 5000 }, sinkType: 'postgresql', enabled: true },
+      { id: 'mysql_sink', type: 'sink', label: 'MySQL', x: 230, y: 580, config: { host: 'localhost', port: 3306, batchSize: 3000 }, sinkType: 'mysql', enabled: true },
+      { id: 'ch_sink', type: 'sink', label: 'ClickHouse', x: 430, y: 580, config: { host: 'localhost', port: 8123, batchSize: 50000 }, sinkType: 'clickhouse', enabled: true },
+    ];
+    const reactive: PipelineNode = { id: 'reactive', type: 'reactive', label: 'Reactive Views', x: 680, y: 520, config: { maxViews: 100, persistence: true }, enabled: true };
+    const mysqlCdc: PipelineNode = { id: 'mysql_cdc', type: 'source', label: 'MySQL CDC', x: 600, y: 60, config: { host: 'localhost', port: 3306 }, sourceType: 'cdc_mysql', enabled: true };
+    base.nodes.push(mysqlCdc, ...shards, ...sinks, reactive);
+    base.edges.push(
       { id: 'e3', from: 'mysql_cdc', to: 'sequencer' },
-      { id: 'e4', from: 'sequencer', to: 'wal' },
       { id: 'e5', from: 'wal', to: 'shard_1' },
       { id: 'e6', from: 'wal', to: 'shard_2' },
       { id: 'e7', from: 'wal', to: 'shard_3' },
@@ -330,6 +368,37 @@ export function createDefaultPipeline(): PipelineConfig {
       { id: 'e9', from: 'shard_1', to: 'mysql_sink' },
       { id: 'e10', from: 'shard_2', to: 'ch_sink' },
       { id: 'e11', from: 'shard_3', to: 'reactive' },
-    ],
-  };
+    );
+  }
+
+  return base;
+}
+
+// Default pipeline (backward compat)
+export function createDefaultPipeline(): PipelineConfig {
+  return createPipelineForMode('multi_sink');
+}
+
+// Validate pipeline against its mode — returns warnings
+export function validatePipelineMode(pipeline: PipelineConfig): string[] {
+  const warnings: string[] = [];
+  const sinks = pipeline.nodes.filter(n => n.type === 'sink');
+  const externalSinks = sinks.filter(n => n.sinkType !== 'internal');
+  const internalSinks = sinks.filter(n => n.sinkType === 'internal');
+
+  if (pipeline.mode === 'pure_wal') {
+    if (sinks.length > 0) warnings.push('Pure WAL mode should have no sinks. Remove sinks or switch mode.');
+    if (pipeline.nodes.filter(n => n.type === 'shard').length > 0) warnings.push('Pure WAL mode does not use shards.');
+  } else if (pipeline.mode === 'internal_sink') {
+    if (externalSinks.length > 0) warnings.push('Internal Sink mode should not have external sinks.');
+    if (internalSinks.length === 0) warnings.push('Internal Sink mode requires at least one internal sink.');
+  } else if (pipeline.mode === 'multi_sink') {
+    if (externalSinks.length === 0) warnings.push('Multi-Sink mode needs at least one external sink.');
+  }
+
+  if (!pipeline.nodes.find(n => n.type === 'source')) warnings.push('Pipeline has no data sources.');
+  if (!pipeline.nodes.find(n => n.type === 'sequencer')) warnings.push('Pipeline is missing a Sequencer.');
+  if (!pipeline.nodes.find(n => n.type === 'wal')) warnings.push('Pipeline is missing a WAL.');
+
+  return warnings;
 }
