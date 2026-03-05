@@ -11,11 +11,17 @@ const statusColors: Record<ComponentStatus, string> = {
 export function StatusDot({ status, size = 'sm' }: { status: ComponentStatus; size?: 'sm' | 'md' }) {
   return (
     <span className="relative flex items-center justify-center">
+      {status === 'healthy' && (
+        <span className={cn(
+          'absolute rounded-full animate-ping opacity-40',
+          statusColors[status],
+          size === 'sm' ? 'h-2 w-2' : 'h-3 w-3'
+        )} />
+      )}
       <span className={cn(
-        'rounded-full',
+        'relative rounded-full',
         statusColors[status],
         size === 'sm' ? 'h-2 w-2' : 'h-3 w-3',
-        status === 'healthy' && 'animate-pulse-glow'
       )} />
     </span>
   );
