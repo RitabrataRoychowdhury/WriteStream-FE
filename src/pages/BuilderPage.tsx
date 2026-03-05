@@ -3,9 +3,10 @@ import { ConnectorPalette } from '@/components/builder/ConnectorPalette';
 import { DagCanvas } from '@/components/builder/DagCanvas';
 import { NodeConfigPanel } from '@/components/builder/NodeConfigPanel';
 import { YamlEditor } from '@/components/builder/YamlEditor';
+import { ModeSelector } from '@/components/builder/ModeSelector';
 import { cn } from '@/lib/utils';
-import { createDefaultPipeline, pipelineToYaml, yamlToPipeline, type PipelineConfig, type PipelineNode, type ConnectorTemplate } from '@/lib/pipelineTypes';
-import { Code, GitBranch, ChevronLeft, ChevronRight, Download, Upload, RotateCcw, Play, Save } from 'lucide-react';
+import { createDefaultPipeline, createPipelineForMode, pipelineToYaml, yamlToPipeline, validatePipelineMode, type PipelineConfig, type PipelineNode, type PipelineMode, type ConnectorTemplate } from '@/lib/pipelineTypes';
+import { Code, GitBranch, ChevronLeft, ChevronRight, Download, Upload, RotateCcw, Play } from 'lucide-react';
 
 type ViewMode = 'visual' | 'yaml' | 'split';
 
@@ -17,7 +18,8 @@ export default function BuilderPage() {
   const [yamlText, setYamlText] = useState(() => pipelineToYaml(createDefaultPipeline()));
   const [yamlError, setYamlError] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(true);
-  const [pipelineMode, setPipelineMode] = useState(pipeline.mode);
+
+  const modeWarnings = useMemo(() => validatePipelineMode(pipeline), [pipeline]);
 
   const selectedNode = useMemo(() => pipeline.nodes.find(n => n.id === selectedNodeId) || null, [pipeline.nodes, selectedNodeId]);
 
@@ -34,7 +36,7 @@ export default function BuilderPage() {
     } else {
       setYamlError(null);
       setPipeline(result);
-      setPipelineMode(result.mode);
+      // mode is stored in pipeline state directly
     }
   }, []);
 
@@ -110,11 +112,13 @@ export default function BuilderPage() {
 
   const handleCancelConnect = useCallback(() => setConnectingFrom(null), []);
 
-  const handleModeChange = useCallback((mode: string) => {
-    const m = mode as PipelineConfig['mode'];
-    setPipelineMode(m);
-    updatePipeline(p => ({ ...p, mode: m }));
-  }, [updatePipeline]);
+  const handleModeChange = useCallback((mode: PipelineMode) => {
+    const newPipeline = createPipelineForMode(mode);
+    setPipeline(newPipeline);
+    setYamlText(pipelineToYaml(newPipeline));
+    setYamlError(null);
+    setSelectedNodeId(null);
+  }, []);
 
   const handleExportYaml = useCallback(() => {
     const blob = new Blob([yamlText], { type: 'text/yaml' });
@@ -141,13 +145,12 @@ export default function BuilderPage() {
   }, [handleYamlChange]);
 
   const handleReset = useCallback(() => {
-    const def = createDefaultPipeline();
+    const def = createPipelineForMode(pipeline.mode);
     setPipeline(def);
     setYamlText(pipelineToYaml(def));
     setYamlError(null);
     setSelectedNodeId(null);
-    setPipelineMode(def.mode);
-  }, []);
+  }, [pipeline.mode]);
 
   return (
     <div className="h-full flex flex-col gap-0 -m-4 md:-m-6">
@@ -156,15 +159,7 @@ export default function BuilderPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold text-foreground hidden md:block">Pipeline Builder</h1>
           <div className="h-4 w-px bg-border/50 hidden md:block" />
-          <select
-            value={pipelineMode}
-            onChange={(e) => handleModeChange(e.target.value)}
-            className="text-xs px-2.5 py-1.5 rounded-lg border border-border/50 bg-secondary/30 text-foreground focus:outline-none focus:border-primary/50"
-          >
-            <option value="pure_wal">Pure WAL</option>
-            <option value="internal_sink">Internal Sink</option>
-            <option value="multi_sink">Multi-Sink</option>
-          </select>
+          <ModeSelector value={pipeline.mode} onChange={handleModeChange} warnings={modeWarnings} />
         </div>
 
         <div className="flex items-center gap-1">
