@@ -14,33 +14,35 @@ interface MetricCardProps {
 export function MetricCard({ title, value, subtitle, icon, color, children, className }: MetricCardProps) {
   return (
     <div className={cn(
-      'glass-card p-4 md:p-5 animate-fade-in group relative overflow-hidden',
+      'card-3d p-5 md:p-6 group relative overflow-hidden perspective-container',
       className
     )}>
-      {/* Subtle background glow */}
-      <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full opacity-[0.07] blur-2xl transition-opacity duration-500 group-hover:opacity-[0.12]"
-        style={{ background: color ? undefined : 'hsl(var(--primary))' }}
-        {...(color && { className: `absolute -top-12 -right-12 h-24 w-24 rounded-full opacity-[0.07] blur-2xl transition-opacity duration-500 group-hover:opacity-[0.12] bg-current ${color}` })}
+      {/* Ambient glow */}
+      <div
+        className={cn(
+          'absolute -top-16 -right-16 h-32 w-32 rounded-full opacity-[0.04] blur-2xl transition-opacity duration-500 group-hover:opacity-[0.08]',
+          color || 'bg-primary'
+        )}
       />
 
-      <div className="flex items-start justify-between mb-3 relative">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
+      <div className="flex items-start justify-between mb-4 relative z-10">
+        <span className="section-label">{title}</span>
         {icon && (
           <div className={cn(
-            'flex items-center justify-center h-8 w-8 rounded-lg bg-secondary/50 transition-colors group-hover:bg-secondary',
+            'flex items-center justify-center h-9 w-9 rounded-xl bg-secondary/60 transition-all duration-200 group-hover:bg-secondary group-hover:scale-105',
             color
           )}>
             {icon}
           </div>
         )}
       </div>
-      <div className="flex items-baseline gap-2 relative">
-        <span className={cn('text-2xl md:text-3xl font-bold font-mono tracking-tight', color || 'text-foreground')}>
+      <div className="flex items-baseline gap-2.5 relative z-10">
+        <span className={cn('text-3xl md:text-4xl font-bold font-mono tracking-tight leading-none', color || 'text-foreground')}>
           {typeof value === 'number' ? value.toLocaleString() : value}
         </span>
         {subtitle && <span className="text-xs text-muted-foreground font-medium">{subtitle}</span>}
       </div>
-      {children && <div className="relative">{children}</div>}
+      {children && <div className="relative z-10 mt-1">{children}</div>}
     </div>
   );
 }
