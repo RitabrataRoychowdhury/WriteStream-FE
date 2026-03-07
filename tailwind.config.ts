@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Outfit", "Inter", "system-ui", "sans-serif"],
+        display: ["Outfit", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
@@ -73,6 +74,12 @@ export default {
           error: "hsl(var(--ws-error))",
           info: "hsl(var(--ws-info))",
         },
+        surface: {
+          1: "hsl(var(--surface-1))",
+          2: "hsl(var(--surface-2))",
+          3: "hsl(var(--surface-3))",
+          elevated: "hsl(var(--surface-elevated))",
+        },
         canvas: {
           DEFAULT: "hsl(var(--canvas-bg))",
           dot: "hsl(var(--canvas-dot))",
@@ -85,6 +92,13 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+      },
+      boxShadow: {
+        ambient: "var(--shadow-ambient)",
+        elevated: "var(--shadow-elevated)",
+        floating: "var(--shadow-floating)",
       },
       keyframes: {
         "accordion-down": {

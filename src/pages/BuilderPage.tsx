@@ -20,7 +20,6 @@ export default function BuilderPage() {
   const [paletteOpen, setPaletteOpen] = useState(true);
 
   const modeWarnings = useMemo(() => validatePipelineMode(pipeline), [pipeline]);
-
   const selectedNode = useMemo(() => pipeline.nodes.find(n => n.id === selectedNodeId) || null, [pipeline.nodes, selectedNodeId]);
 
   const syncYaml = useCallback((p: PipelineConfig) => {
@@ -36,7 +35,6 @@ export default function BuilderPage() {
     } else {
       setYamlError(null);
       setPipeline(result);
-      // mode is stored in pipeline state directly
     }
   }, []);
 
@@ -153,26 +151,27 @@ export default function BuilderPage() {
   }, [pipeline.mode]);
 
   return (
-    <div className="h-full flex flex-col gap-0 -m-4 md:-m-6">
+    <div className="h-full flex flex-col gap-0 -m-5 md:-m-8">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-card/30 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold text-foreground hidden md:block">Pipeline Builder</h1>
-          <div className="h-4 w-px bg-border/50 hidden md:block" />
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 bg-background/60 backdrop-blur-xl relative z-20">
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/8 to-transparent" />
+        <div className="flex items-center gap-4">
+          <h1 className="text-sm font-semibold text-foreground hidden md:block font-display">Pipeline Builder</h1>
+          <div className="h-4 w-px bg-border/40 hidden md:block" />
           <ModeSelector value={pipeline.mode} onChange={handleModeChange} warnings={modeWarnings} />
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {/* View toggle */}
-          <div className="flex items-center rounded-lg border border-border/50 overflow-hidden mr-2">
+          <div className="flex items-center rounded-xl border border-border/40 overflow-hidden mr-2 bg-secondary/30">
             {(['visual', 'split', 'yaml'] as ViewMode[]).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 className={cn(
-                  'px-2.5 py-1.5 text-[11px] font-medium transition-colors',
-                  viewMode === mode ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/30',
-                  mode !== 'visual' && 'border-l border-border/50'
+                  'px-3 py-2 text-[11px] font-medium transition-all duration-200',
+                  viewMode === mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                  mode !== 'visual' && 'border-l border-border/30'
                 )}
               >
                 {mode === 'visual' ? <GitBranch className="h-3.5 w-3.5" /> : mode === 'yaml' ? <Code className="h-3.5 w-3.5" /> : 'Split'}
@@ -180,17 +179,17 @@ export default function BuilderPage() {
             ))}
           </div>
 
-          <button onClick={handleImportYaml} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Import YAML">
+          <button onClick={handleImportYaml} className="p-2 rounded-xl hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200" title="Import YAML">
             <Upload className="h-3.5 w-3.5" />
           </button>
-          <button onClick={handleExportYaml} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Export YAML">
+          <button onClick={handleExportYaml} className="p-2 rounded-xl hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200" title="Export YAML">
             <Download className="h-3.5 w-3.5" />
           </button>
-          <button onClick={handleReset} className="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors" title="Reset">
+          <button onClick={handleReset} className="p-2 rounded-xl hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200" title="Reset">
             <RotateCcw className="h-3.5 w-3.5" />
           </button>
-          <div className="h-4 w-px bg-border/50 mx-1" />
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
+          <div className="h-5 w-px bg-border/40 mx-1" />
+          <button className="btn-magnetic flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold">
             <Play className="h-3 w-3" /> Deploy
           </button>
         </div>
@@ -200,13 +199,13 @@ export default function BuilderPage() {
       <div className="flex-1 flex min-h-0">
         {/* Connector palette */}
         <div className={cn(
-          'shrink-0 border-r border-border/30 bg-card/20 transition-all duration-200 relative',
-          paletteOpen ? 'w-48' : 'w-11'
+          'shrink-0 border-r border-border/20 bg-surface-2/50 transition-all duration-300 relative',
+          paletteOpen ? 'w-52' : 'w-11'
         )}>
           <ConnectorPalette onDragStart={() => {}} collapsed={!paletteOpen} />
           <button
             onClick={() => setPaletteOpen(!paletteOpen)}
-            className="absolute top-3 -right-3 z-10 w-6 h-6 rounded-full bg-card border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+            className="absolute top-4 -right-3 z-10 w-6 h-6 rounded-full bg-card border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all duration-200 shadow-ambient hover:shadow-elevated"
           >
             {paletteOpen ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
@@ -231,7 +230,7 @@ export default function BuilderPage() {
 
         {/* YAML editor */}
         {(viewMode === 'yaml' || viewMode === 'split') && (
-          <div className={cn('border-l border-border/30 bg-card/10', viewMode === 'split' ? 'w-96' : 'flex-1')}>
+          <div className={cn('border-l border-border/20 bg-surface-2/30', viewMode === 'split' ? 'w-96' : 'flex-1')}>
             <YamlEditor value={yamlText} onChange={handleYamlChange} error={yamlError} />
           </div>
         )}

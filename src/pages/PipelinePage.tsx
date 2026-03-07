@@ -1,11 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useMetrics } from '@/hooks/useMetrics';
 import { StatusDot } from '@/components/shared/StatusDot';
 import { X, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ComponentStatus } from '@/mocks/mockData';
 
-// Node definitions for the DAG
 interface DagNode {
   id: string;
   label: string;
@@ -21,25 +20,19 @@ interface DagEdge {
 }
 
 const NODES: DagNode[] = [
-  // Sources
   { id: 'http', label: 'HTTP API', x: 80, y: 60, color: 'var(--ws-source)', group: 'source' },
   { id: 'kafka_in', label: 'Kafka', x: 230, y: 60, color: 'var(--ws-source)', group: 'source' },
   { id: 'mysql_cdc', label: 'MySQL CDC', x: 380, y: 60, color: 'var(--ws-source)', group: 'source' },
   { id: 'pg_cdc', label: 'PG CDC', x: 530, y: 60, color: 'var(--ws-source)', group: 'source' },
-  // Sequencer
   { id: 'sequencer', label: 'Sequencer', x: 305, y: 180, color: 'var(--ws-hotpath)', group: 'hotpath' },
-  // WAL
   { id: 'wal', label: 'WAL', x: 305, y: 280, color: 'var(--ws-wal)', group: 'wal' },
-  // Shards
   { id: 'shard1', label: 'Shard 1', x: 105, y: 380, color: 'var(--ws-shard)', group: 'shard' },
   { id: 'shard2', label: 'Shard 2', x: 305, y: 380, color: 'var(--ws-shard)', group: 'shard' },
   { id: 'shard3', label: 'Shard 3', x: 505, y: 380, color: 'var(--ws-shard)', group: 'shard' },
-  // Sinks
   { id: 'pg_sink', label: 'PostgreSQL', x: 40, y: 500, color: 'var(--ws-sink)', group: 'sink' },
   { id: 'mysql_sink', label: 'MySQL', x: 190, y: 500, color: 'var(--ws-sink)', group: 'sink' },
   { id: 'ch_sink', label: 'ClickHouse', x: 340, y: 500, color: 'var(--ws-sink)', group: 'sink' },
   { id: 'kafka_out', label: 'Kafka Out', x: 490, y: 500, color: 'var(--ws-sink)', group: 'sink' },
-  // Reactive
   { id: 'reactive', label: 'Reactive Views', x: 640, y: 440, color: 'var(--ws-reactive)', group: 'reactive' },
 ];
 
@@ -60,7 +53,7 @@ const EDGES: DagEdge[] = [
 ];
 
 const NODE_W = 130;
-const NODE_H = 52;
+const NODE_H = 56;
 
 function getNodeMetrics(nodeId: string, metrics: ReturnType<typeof useMetrics>['metrics']) {
   const m = metrics;
@@ -97,7 +90,6 @@ export default function PipelinePage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const dragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('[data-node]')) return;
@@ -126,42 +118,50 @@ export default function PipelinePage() {
   const selectedMetrics = selected ? getNodeMetrics(selected, metrics) : null;
 
   return (
-    <div className="h-full flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col gap-5">
+      <div className="flex items-end justify-between animate-fade-in">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Pipeline Overview</h1>
-          <p className="text-sm text-muted-foreground">Real-time data flow visualization</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight font-display">Pipeline Overview</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-light">Real-time data flow visualization</p>
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} className="p-2 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"><ZoomIn className="h-4 w-4" /></button>
-          <button onClick={() => setZoom(z => Math.max(0.4, z - 0.2))} className="p-2 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"><ZoomOut className="h-4 w-4" /></button>
-          <button onClick={resetView} className="p-2 rounded-md hover:bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"><Maximize2 className="h-4 w-4" /></button>
+        <div className="flex items-center gap-1 surface-card p-1 rounded-xl">
+          <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200"><ZoomIn className="h-4 w-4" /></button>
+          <button onClick={() => setZoom(z => Math.max(0.4, z - 0.2))} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200"><ZoomOut className="h-4 w-4" /></button>
+          <div className="w-px h-5 bg-border/40" />
+          <button onClick={resetView} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200"><Maximize2 className="h-4 w-4" /></button>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4 min-h-0">
+      <div className="flex-1 flex gap-5 min-h-0">
         {/* DAG Canvas */}
         <div
-          ref={containerRef}
-          className="flex-1 glass-card overflow-hidden cursor-grab active:cursor-grabbing relative"
+          className="flex-1 surface-card overflow-hidden cursor-grab active:cursor-grabbing relative rounded-2xl"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
         >
+          {/* Canvas dot pattern */}
+          <div className="absolute inset-0 opacity-30" style={{
+            backgroundImage: 'radial-gradient(circle, hsl(var(--canvas-dot)) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }} />
+
           <svg
             width="100%"
             height="100%"
             viewBox="0 0 780 580"
             style={{ transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)` }}
-            className="transition-transform duration-100"
+            className="transition-transform duration-100 relative z-10"
           >
             <defs>
-              {/* Animated flow markers */}
               <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="hsl(var(--muted-foreground))" opacity="0.5" />
+                <polygon points="0 0, 8 3, 0 6" fill="hsl(var(--muted-foreground))" opacity="0.35" />
               </marker>
+              <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="6" floodOpacity="0.08" floodColor="hsl(var(--foreground))" />
+              </filter>
             </defs>
 
             {/* Edges */}
@@ -175,17 +175,16 @@ export default function PipelinePage() {
               const midY = (y1 + y2) / 2;
 
               return (
-                <g key={i}>
-                  <path
-                    d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
-                    fill="none"
-                    stroke="hsl(var(--border))"
-                    strokeWidth="2"
-                    strokeDasharray="6 4"
-                    className="animate-flow-dash"
-                    markerEnd="url(#arrowhead)"
-                  />
-                </g>
+                <path
+                  key={i}
+                  d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
+                  fill="none"
+                  stroke="hsl(var(--border))"
+                  strokeWidth="1.5"
+                  strokeDasharray="6 4"
+                  className="animate-flow-dash"
+                  markerEnd="url(#arrowhead)"
+                />
               );
             })}
 
@@ -199,47 +198,51 @@ export default function PipelinePage() {
                   data-node
                   className="cursor-pointer"
                   onClick={() => setSelected(isSelected ? null : node.id)}
+                  filter="url(#node-shadow)"
                 >
-                  {/* Shadow/glow */}
-                  <rect
-                    x={node.x - 2}
-                    y={node.y - 2}
-                    width={NODE_W + 4}
-                    height={NODE_H + 4}
-                    rx={12}
-                    fill={`hsl(${node.color} / ${isSelected ? 0.2 : 0.05})`}
-                    className="transition-all duration-300"
-                  />
-                  {/* Card */}
+                  {/* Glow ring */}
+                  {isSelected && (
+                    <rect
+                      x={node.x - 3}
+                      y={node.y - 3}
+                      width={NODE_W + 6}
+                      height={NODE_H + 6}
+                      rx={16}
+                      fill="none"
+                      stroke={`hsl(${node.color} / 0.3)`}
+                      strokeWidth="2"
+                      className="animate-pulse-glow"
+                    />
+                  )}
+                  {/* Card body */}
                   <rect
                     x={node.x}
                     y={node.y}
                     width={NODE_W}
                     height={NODE_H}
-                    rx={10}
+                    rx={14}
                     fill="hsl(var(--card))"
-                    stroke={`hsl(${node.color} / ${isSelected ? 0.8 : 0.3})`}
-                    strokeWidth={isSelected ? 2 : 1}
+                    stroke={`hsl(${node.color} / ${isSelected ? 0.6 : 0.15})`}
+                    strokeWidth={isSelected ? 1.5 : 1}
                     className="transition-all duration-300"
                   />
-                  {/* Status dot */}
+                  {/* Status */}
                   <circle
                     cx={node.x + 14}
-                    cy={node.y + 16}
-                    r={4}
+                    cy={node.y + 18}
+                    r={3.5}
                     fill={nm.status === 'healthy' ? 'hsl(var(--ws-success))' : nm.status === 'degraded' ? 'hsl(var(--ws-warning))' : nm.status === 'down' ? 'hsl(var(--ws-error))' : 'hsl(var(--muted-foreground))'}
                   />
                   {/* Label */}
-                  <text x={node.x + 24} y={node.y + 20} fill="hsl(var(--foreground))" fontSize="11" fontWeight="600" fontFamily="Inter, sans-serif">
+                  <text x={node.x + 24} y={node.y + 22} fill="hsl(var(--foreground))" fontSize="11" fontWeight="600" fontFamily="Outfit, Inter, sans-serif">
                     {node.label}
                   </text>
                   {/* TPS */}
-                  <text x={node.x + 14} y={node.y + 40} fill={`hsl(${node.color})`} fontSize="11" fontWeight="700" fontFamily="JetBrains Mono, monospace">
+                  <text x={node.x + 14} y={node.y + 44} fill={`hsl(${node.color})`} fontSize="11" fontWeight="700" fontFamily="JetBrains Mono, monospace">
                     {formatTps(nm.tps)} /s
                   </text>
-                  {/* Latency */}
                   {nm.latency != null && (
-                    <text x={node.x + NODE_W - 10} y={node.y + 40} fill="hsl(var(--muted-foreground))" fontSize="9" fontFamily="JetBrains Mono, monospace" textAnchor="end">
+                    <text x={node.x + NODE_W - 10} y={node.y + 44} fill="hsl(var(--muted-foreground))" fontSize="9" fontFamily="JetBrains Mono, monospace" textAnchor="end">
                       {nm.latency.toFixed(1)}ms
                     </text>
                   )}
@@ -251,35 +254,28 @@ export default function PipelinePage() {
 
         {/* Detail Panel */}
         {selected && selectedNode && selectedMetrics && (
-          <div className="w-72 glass-card p-4 animate-slide-in-right overflow-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+          <div className="w-72 card-float p-5 animate-slide-in-right overflow-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
                 <StatusDot status={selectedMetrics.status} size="md" />
-                <span className="font-semibold text-foreground">{selectedNode.label}</span>
+                <span className="font-semibold text-foreground font-display">{selectedNode.label}</span>
               </div>
-              <button onClick={() => setSelected(null)} className="p-1 rounded hover:bg-secondary/50 text-muted-foreground"><X className="h-4 w-4" /></button>
+              <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-secondary/60 text-muted-foreground transition-colors"><X className="h-4 w-4" /></button>
             </div>
-            <div className="space-y-3">
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <span className={cn('text-xs font-medium capitalize', selectedMetrics.status === 'healthy' ? 'text-ws-success' : selectedMetrics.status === 'degraded' ? 'text-ws-warning' : 'text-ws-error')}>
-                  {selectedMetrics.status}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-xs text-muted-foreground">Throughput</span>
-                <span className="text-xs font-mono font-semibold text-foreground">{formatTps(selectedMetrics.tps)} /s</span>
-              </div>
-              {selectedMetrics.latency != null && (
-                <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-xs text-muted-foreground">Latency P99</span>
-                  <span className="text-xs font-mono font-semibold text-foreground">{selectedMetrics.latency.toFixed(2)} ms</span>
+            <div className="space-y-4">
+              {[
+                { label: 'Status', value: selectedMetrics.status, color: selectedMetrics.status === 'healthy' ? 'text-ws-success' : selectedMetrics.status === 'degraded' ? 'text-ws-warning' : 'text-ws-error' },
+                { label: 'Throughput', value: `${formatTps(selectedMetrics.tps)} /s` },
+                ...(selectedMetrics.latency != null ? [{ label: 'Latency P99', value: `${selectedMetrics.latency.toFixed(2)} ms` }] : []),
+                { label: 'Group', value: selectedNode.group },
+              ].map(row => (
+                <div key={row.label} className="flex justify-between items-center py-2.5 border-b border-border/30 last:border-0">
+                  <span className="text-xs text-muted-foreground">{row.label}</span>
+                  <span className={cn('text-xs font-mono font-semibold capitalize', (row as any).color || 'text-foreground')}>
+                    {row.value}
+                  </span>
                 </div>
-              )}
-              <div className="flex justify-between py-2 border-b border-border/50">
-                <span className="text-xs text-muted-foreground">Group</span>
-                <span className="text-xs font-medium text-muted-foreground capitalize">{selectedNode.group}</span>
-              </div>
+              ))}
             </div>
           </div>
         )}
