@@ -35,18 +35,21 @@ export function AppSidebar({ open, onToggle, currentPath }: AppSidebarProps) {
   return (
     <aside
       className={cn(
-        'flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 shrink-0 relative overflow-hidden',
+        'flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-out shrink-0 relative overflow-hidden',
         open ? 'w-[220px]' : 'w-[60px]'
       )}
     >
-      {/* Ambient glow */}
+      {/* Layered ambient glows */}
       <div className="absolute -top-20 -left-20 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 -right-10 w-32 h-32 bg-ws-wal/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -left-8 w-24 h-24 bg-ws-sink/3 rounded-full blur-2xl pointer-events-none" />
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 shrink-0">
-        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-ws-wal shadow-lg shadow-primary/25 shrink-0">
-          <Zap className="h-4 w-4 text-primary-foreground" />
+        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-ws-wal shadow-lg shadow-primary/25 shrink-0 group/logo">
+          <Zap className="h-4 w-4 text-primary-foreground transition-transform duration-300 group-hover/logo:scale-110 group-hover/logo:rotate-12" />
+          {/* Animated ring */}
+          <div className="absolute inset-0 rounded-xl border border-primary/20 animate-breathe" />
         </div>
         {open && (
           <div className="flex flex-col min-w-0">
@@ -77,14 +80,18 @@ export function AppSidebar({ open, onToggle, currentPath }: AppSidebarProps) {
               )}
             >
               {active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-primary to-ws-wal" />
+                <>
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-primary to-ws-wal" />
+                  {/* Active glow */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
+                </>
               )}
               <item.icon className={cn(
-                'h-[18px] w-[18px] shrink-0 transition-all duration-200',
+                'h-[18px] w-[18px] shrink-0 transition-all duration-300',
                 active ? (item.color || 'text-primary') : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground',
-                !active && 'group-hover:scale-110'
+                !active && 'group-hover:scale-110 group-hover:translate-x-0.5'
               )} />
-              {open && <span className="whitespace-nowrap">{item.label}</span>}
+              {open && <span className="whitespace-nowrap transition-all duration-200">{item.label}</span>}
             </Link>
           );
         })}
@@ -106,7 +113,7 @@ export function AppSidebar({ open, onToggle, currentPath }: AppSidebarProps) {
         )}
         <button
           onClick={onToggle}
-          className="flex items-center justify-center w-full h-11 text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all duration-200 hover:bg-sidebar-accent/30"
+          className="flex items-center justify-center w-full h-11 text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all duration-200 hover:bg-sidebar-accent/30 btn-magnetic"
         >
           <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', !open && 'rotate-180')} />
         </button>
