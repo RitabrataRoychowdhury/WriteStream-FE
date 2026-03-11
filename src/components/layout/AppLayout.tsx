@@ -34,6 +34,7 @@ export function AppLayout() {
         <main className="flex-1 overflow-auto p-5 md:p-8 relative z-0">
           <Outlet />
         </main>
+        <CommandPalette theme={theme} onToggleTheme={toggleTheme} />
       </div>
     </div>
   );
