@@ -47,7 +47,10 @@ export function TopBar({ onToggleSidebar, theme, onToggleTheme }: TopBarProps) {
 
       <div className="flex items-center gap-1.5">
         {/* Command palette hint */}
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/30 text-[11px] text-muted-foreground mr-2 hover:border-border/60 transition-colors cursor-pointer">
+        <div
+          onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+          className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/30 text-[11px] text-muted-foreground mr-2 hover:border-border/60 transition-colors cursor-pointer"
+        >
           <Command className="h-3 w-3" />
           <span>K</span>
         </div>
