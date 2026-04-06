@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Gauge, Play, Square, Clock } from 'lucide-react';
+import { TiltCard } from '@/components/shared/TiltCard';
+import { ScrollReveal } from '@/components/shared/ScrollReveal';
+import { FloatingShape } from '@/components/shared/FloatingShape';
+import { Play, Square, Clock, Gauge, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BenchmarkResult {
@@ -55,97 +58,142 @@ export default function BenchmarksPage() {
   };
 
   const testTypes = [
-    { value: 'pure_wal', label: 'Pure WAL' },
-    { value: 'single_sink', label: 'Single Sink' },
-    { value: 'multi_sink', label: 'Multi-Sink' },
+    { value: 'pure_wal', label: 'Pure WAL', color: 'text-ws-wal' },
+    { value: 'single_sink', label: 'Single Sink', color: 'text-ws-sink' },
+    { value: 'multi_sink', label: 'Multi-Sink', color: 'text-ws-hotpath' },
   ];
 
+  const bestTps = results.length > 0 ? Math.max(...results.map(r => r.avgTps)) : 0;
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-xl font-semibold text-foreground">Performance Benchmarks</h1>
-        <p className="text-sm text-muted-foreground">Run and compare benchmark tests</p>
-      </div>
+    <div className="space-y-8 max-w-[1400px] mx-auto relative">
+      <FloatingShape variant="gradient-orb" size={200} className="top-0 -right-20 opacity-50" delay={0} color="hsl(var(--ws-hotpath) / 0.08)" />
+      <FloatingShape variant="ring" size={60} className="top-[500px] -left-6 opacity-30" delay={2200} />
 
-      {/* Benchmark Config */}
-      <div className="glass-card p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Configure Benchmark</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Header */}
+      <ScrollReveal>
+        <div className="flex items-end justify-between">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Test Type</label>
-            <div className="flex gap-1">
-              {testTypes.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => setTestType(t.value)}
-                  className={cn('px-3 py-1.5 rounded text-xs font-medium transition-colors', testType === t.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground')}
-                >
-                  {t.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-3 mb-1">
+              <div className="h-1.5 w-1.5 rounded-full bg-ws-hotpath animate-pulse" />
+              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Performance</span>
             </div>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight font-display">
+              <span className="text-gradient">Benchmarks</span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2 font-light">Run and compare throughput benchmarks across pipeline modes.</p>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Duration (seconds)</label>
-            <Input value={duration} onChange={e => setDuration(e.target.value)} className="h-8 text-sm bg-background" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Target TPS</label>
-            <Input value={targetTps} onChange={e => setTargetTps(e.target.value)} className="h-8 text-sm bg-background" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Payload Size (bytes)</label>
-            <Input value={payloadSize} onChange={e => setPayloadSize(e.target.value)} className="h-8 text-sm bg-background" />
-          </div>
+          {bestTps > 0 && (
+            <div className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-2xl glass-card text-xs">
+              <Trophy className="h-3.5 w-3.5 text-ws-warning" />
+              <span className="text-muted-foreground">Best:</span>
+              <span className="font-mono font-bold text-foreground">{bestTps.toLocaleString()}</span>
+              <span className="text-muted-foreground">TPS</span>
+            </div>
+          )}
         </div>
+      </ScrollReveal>
 
-        {running && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Running benchmark...</span>
-              <span className="font-mono text-foreground">{progress.toFixed(0)}%</span>
+      {/* Config */}
+      <ScrollReveal delay={60}>
+        <TiltCard className="p-6 space-y-5" intensity={0.2}>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary/10">
+              <Gauge className="h-3.5 w-3.5 text-primary" />
             </div>
-            <div className="h-2 rounded-full bg-secondary overflow-hidden">
-              <div className="h-full rounded-full bg-primary transition-all duration-100" style={{ width: `${progress}%` }} />
-            </div>
+            <h3 className="text-sm font-semibold text-foreground font-display">Configure Benchmark</h3>
           </div>
-        )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div>
+              <label className="section-label mb-2 block">Test Type</label>
+              <div className="flex gap-1.5">
+                {testTypes.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => setTestType(t.value)}
+                    className={cn(
+                      'px-3 py-2 rounded-lg text-xs font-medium transition-all border',
+                      testType === t.value
+                        ? 'bg-primary/10 text-foreground border-primary/30'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {[
+              { label: 'Duration (seconds)', value: duration, setter: setDuration },
+              { label: 'Target TPS', value: targetTps, setter: setTargetTps },
+              { label: 'Payload Size (bytes)', value: payloadSize, setter: setPayloadSize },
+            ].map(field => (
+              <div key={field.label}>
+                <label className="section-label mb-2 block">{field.label}</label>
+                <Input value={field.value} onChange={e => field.setter(e.target.value)} className="h-9 text-sm bg-background/80 border-border/40" />
+              </div>
+            ))}
+          </div>
 
-        <Button size="sm" className="gap-1.5" onClick={runBenchmark} disabled={running}>
-          {running ? <><Square className="h-3 w-3" /> Running...</> : <><Play className="h-3 w-3" /> Run Benchmark</>}
-        </Button>
-      </div>
+          {running && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Running benchmark...</span>
+                <span className="font-mono font-bold text-foreground">{progress.toFixed(0)}%</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-secondary/40 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-100"
+                  style={{
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--ws-hotpath)))',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          <Button size="sm" className="gap-1.5" onClick={runBenchmark} disabled={running}>
+            {running ? <><Square className="h-3 w-3" /> Running...</> : <><Play className="h-3 w-3" /> Run Benchmark</>}
+          </Button>
+        </TiltCard>
+      </ScrollReveal>
 
       {/* Results */}
-      <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-border/50">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> Benchmark History</h3>
-        </div>
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border/50">
-              <th className="text-left p-3 text-muted-foreground font-medium">Type</th>
-              <th className="text-left p-3 text-muted-foreground font-medium">Duration</th>
-              <th className="text-right p-3 text-muted-foreground font-medium">Avg TPS</th>
-              <th className="text-right p-3 text-muted-foreground font-medium">P99 Latency</th>
-              <th className="text-right p-3 text-muted-foreground font-medium">Total Events</th>
-              <th className="text-right p-3 text-muted-foreground font-medium">Timestamp</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map(r => (
-              <tr key={r.id} className="border-b border-border/30 hover:bg-secondary/20">
-                <td className="p-3 font-medium text-foreground">{r.type}</td>
-                <td className="p-3 text-muted-foreground">{r.duration}</td>
-                <td className="p-3 text-right font-mono font-semibold text-primary">{r.avgTps.toLocaleString()}</td>
-                <td className="p-3 text-right font-mono text-foreground">{r.p99LatencyMs.toFixed(1)}ms</td>
-                <td className="p-3 text-right font-mono text-muted-foreground">{r.totalEvents.toLocaleString()}</td>
-                <td className="p-3 text-right text-muted-foreground">{r.timestamp}</td>
+      <ScrollReveal delay={120}>
+        <TiltCard className="overflow-hidden" intensity={0.2}>
+          <div className="p-5 border-b border-border/30">
+            <div className="flex items-center gap-2.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold text-foreground font-display">Benchmark History</h3>
+              <span className="text-[10px] text-muted-foreground ml-auto font-mono">{results.length} runs</span>
+            </div>
+          </div>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border/30">
+                {['Type', 'Duration', 'Avg TPS', 'P99 Latency', 'Total Events', 'Timestamp'].map(h => (
+                  <th key={h} className={cn('p-4 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold', h === 'Type' || h === 'Duration' ? 'text-left' : 'text-right')}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {results.map(r => (
+                <tr key={r.id} className="border-b border-border/20 hover:bg-secondary/10 transition-colors">
+                  <td className="p-4 font-medium text-foreground">{r.type}</td>
+                  <td className="p-4 text-muted-foreground">{r.duration}</td>
+                  <td className="p-4 text-right">
+                    <span className={cn('font-mono font-bold', r.avgTps === bestTps ? 'text-ws-success' : 'text-primary')}>{r.avgTps.toLocaleString()}</span>
+                  </td>
+                  <td className="p-4 text-right font-mono text-foreground">{r.p99LatencyMs.toFixed(1)}ms</td>
+                  <td className="p-4 text-right font-mono text-muted-foreground">{r.totalEvents.toLocaleString()}</td>
+                  <td className="p-4 text-right text-muted-foreground">{r.timestamp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TiltCard>
+      </ScrollReveal>
     </div>
   );
 }
