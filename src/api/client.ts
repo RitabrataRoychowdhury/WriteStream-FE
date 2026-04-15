@@ -1,10 +1,11 @@
 // WriteStream API Client
-// Clean separation for Rust backend pluggability
-// Toggle between mock and real API via USE_MOCK flag
+// Connects to: HTTP API (8080), Admin API (9091), WebSocket (9094)
+// Falls back to mock data when backend is unreachable
 
-const USE_MOCK = true; // Set to false when connecting to real backend
-const BASE_URL = import.meta.env.VITE_WS_API_URL || 'http://localhost:9091';
-const WS_URL = import.meta.env.VITE_WS_WS_URL || 'ws://localhost:9092';
+const ADMIN_URL = import.meta.env.VITE_WS_ADMIN_URL || '/api/admin';
+const EVENTS_URL = import.meta.env.VITE_WS_EVENTS_URL || '/api/events';
+const METRICS_URL = import.meta.env.VITE_WS_METRICS_URL || '/api/metrics';
+const WS_URL = import.meta.env.VITE_WS_WS_URL || `ws://${window.location.hostname}:9094`;
 
 export interface ApiResponse<T> {
   data: T;
@@ -12,57 +13,44 @@ export interface ApiResponse<T> {
   ok: boolean;
 }
 
-export async function apiGet<T>(path: string): Promise<ApiResponse<T>> {
-  if (USE_MOCK) {
-    // Mock responses are handled by individual modules
-    throw new Error('Use mock data generators directly when USE_MOCK is true');
+async function request<T>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  const res = await fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+  });
+  const text = await res.text();
+  let data: T;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text as unknown as T;
   }
-
-  const res = await fetch(`${BASE_URL}${path}`);
-  const data = await res.json();
   return { data, status: res.status, ok: res.ok };
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {
-  if (USE_MOCK) {
-    return { data: {} as T, status: 200, ok: true };
-  }
+// Admin API helpers
+export const adminGet = <T>(path: string) => request<T>(`${ADMIN_URL}${path}`);
+export const adminPost = <T>(path: string, body?: unknown) =>
+  request<T>(`${ADMIN_URL}${path}`, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
+export const adminPut = <T>(path: string, body: unknown) =>
+  request<T>(`${ADMIN_URL}${path}`, { method: 'PUT', body: JSON.stringify(body) });
+export const adminDelete = (path: string) =>
+  request<void>(`${ADMIN_URL}${path}`, { method: 'DELETE' });
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+// Events API
+export const postEvent = (key: string, payload: Record<string, unknown>) =>
+  request<{ event_id: string; status: string }>(`${EVENTS_URL}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify({ key, payload }),
   });
-  const data = await res.json();
-  return { data, status: res.status, ok: res.ok };
+
+// Prometheus metrics (raw text)
+export const fetchPrometheusMetrics = () =>
+  fetch(`${METRICS_URL}`).then(r => r.text());
+
+// WebSocket
+export function createViewWebSocket(viewName: string, key: string | number): WebSocket {
+  return new WebSocket(`${WS_URL}/ws/${viewName}/${key}`);
 }
 
-export async function apiPut<T>(path: string, body: unknown): Promise<ApiResponse<T>> {
-  if (USE_MOCK) {
-    return { data: {} as T, status: 200, ok: true };
-  }
-
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  return { data, status: res.status, ok: res.ok };
-}
-
-export async function apiDelete(path: string): Promise<ApiResponse<void>> {
-  if (USE_MOCK) {
-    return { data: undefined as never, status: 200, ok: true };
-  }
-
-  const res = await fetch(`${BASE_URL}${path}`, { method: 'DELETE' });
-  return { data: undefined as never, status: res.status, ok: res.ok };
-}
-
-export function createWebSocket(path: string): WebSocket | null {
-  if (USE_MOCK) return null;
-  return new WebSocket(`${WS_URL}${path}`);
-}
-
-export { USE_MOCK, BASE_URL, WS_URL };
+export { ADMIN_URL, EVENTS_URL, METRICS_URL, WS_URL };
