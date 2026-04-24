@@ -357,6 +357,60 @@
   .section-label {
     @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground;
   }
+
+  /* ── Editorial label (taxonomic / archival) ── */
+  .label-editorial {
+    @apply text-[10px] font-semibold uppercase text-muted-foreground;
+    letter-spacing: 0.14em;
+  }
+
+  /* ── Ghost border (no-line rule fallback) ── */
+  .ghost-border {
+    border: 1px solid hsl(var(--border) / 0.35);
+  }
+  .dark .ghost-border {
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* ── Surface stack utilities ── */
+  .surface-low      { background: hsl(var(--surface-container-low)); }
+  .surface-mid      { background: hsl(var(--surface-container)); }
+  .surface-high     { background: hsl(var(--surface-container-high)); }
+  .surface-bright   { background: hsl(var(--surface-1)); }
+
+  /* ── Archival Chip (Woven Earth signature) / Status pill ── */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium;
+    background: hsl(var(--accent) / 0.6);
+    color: hsl(var(--accent-foreground));
+  }
+  .dark .chip {
+    background: hsl(var(--accent) / 0.12);
+    color: hsl(var(--accent));
+  }
+
+  /* ── Status pill (Kinetic) ── */
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-mono;
+  }
+  .status-pill::before {
+    content: '';
+    @apply h-1.5 w-1.5 rounded-full;
+    background: currentColor;
+  }
+
+  /* ── Kinetic Pulse (critical alert glow) ── */
+  .kinetic-pulse {
+    animation: kinetic-pulse 2.2s ease-in-out infinite;
+  }
+
+  /* ── Editorial / Artisanal heading wrapper ── */
+  .editorial-heading {
+    @apply font-display font-semibold tracking-tight;
+  }
+  .editorial-eyebrow {
+    @apply label-editorial text-primary;
+  }
 }
 
 /* ═══ Keyframes ═══ */
