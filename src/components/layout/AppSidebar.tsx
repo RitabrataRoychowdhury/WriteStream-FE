@@ -1,9 +1,10 @@
 import {
   GitBranch, LayoutDashboard, Radio, Database, Eye, ScrollText, Settings, Gauge,
-  ChevronLeft, Zap, Workflow, Search, BarChart3, BellRing
+  ChevronLeft, Workflow, Search, BarChart3, BellRing
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import wsMark from '@/assets/writestream-mark.png';
 
 interface NavItem {
   label: string;
@@ -48,10 +49,15 @@ export function AppSidebar({ open, onToggle, currentPath }: AppSidebarProps) {
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 shrink-0">
-        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-ws-wal shadow-lg shadow-primary/25 shrink-0 group/logo">
-          <Zap className="h-4 w-4 text-primary-foreground transition-transform duration-300 group-hover/logo:scale-110 group-hover/logo:rotate-12" />
-          {/* Animated ring */}
-          <div className="absolute inset-0 rounded-xl border border-primary/20 animate-breathe" />
+        <div className="relative flex h-9 w-9 items-center justify-center rounded-xl shrink-0 group/logo">
+          {/* Warm radial halo behind the brand mark */}
+          <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_center,hsl(var(--ws-error)/0.35),transparent_70%)] blur-md transition-opacity duration-300 group-hover/logo:opacity-100 opacity-80" />
+          <img
+            src={wsMark}
+            alt="WriteStream"
+            className="relative h-9 w-9 object-contain transition-transform duration-300 group-hover/logo:scale-110"
+            draggable={false}
+          />
         </div>
         {open && (
           <div className="flex flex-col min-w-0">
