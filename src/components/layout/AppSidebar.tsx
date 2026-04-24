@@ -1,6 +1,6 @@
 import {
   GitBranch, LayoutDashboard, Radio, Database, Eye, ScrollText, Settings, Gauge,
-  ChevronLeft, Zap, Workflow, Search
+  ChevronLeft, Zap, Workflow, Search, BarChart3, BellRing
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,8 @@ const navItems: NavItem[] = [
   { label: 'Sources', path: '/sources', icon: Radio, color: 'text-ws-source' },
   { label: 'Sinks', path: '/sinks', icon: Database, color: 'text-ws-sink' },
   { label: 'Views', path: '/views', icon: Eye, color: 'text-ws-reactive' },
+  { label: 'Grafana', path: '/grafana', icon: BarChart3, color: 'text-ws-info' },
+  { label: 'Alerts', path: '/alerts', icon: BellRing, color: 'text-ws-error' },
   { label: 'Logs', path: '/logs', icon: ScrollText },
   { label: 'Operations', path: '/operations', icon: Settings },
   { label: 'Benchmarks', path: '/benchmarks', icon: Gauge, color: 'text-ws-shard' },
