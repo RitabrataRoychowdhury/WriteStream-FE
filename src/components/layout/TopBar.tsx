@@ -1,6 +1,7 @@
 import { Menu, Sun, Moon, Bell, Command } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useGrafanaAlerts } from '@/hooks/useGrafanaAlerts';
+import wsMark from '@/assets/writestream-mark.png';
 
 const routeNames: Record<string, string> = {
   '/': 'Pipeline',
@@ -46,7 +47,13 @@ export function TopBar({ onToggleSidebar, theme, onToggleTheme }: TopBarProps) {
           <Menu className="h-4 w-4" />
         </button>
         <div className="flex items-center gap-2.5">
-          <span className="text-muted-foreground/50 text-sm font-medium">WriteStream</span>
+          <img
+            src={wsMark}
+            alt="WriteStream"
+            className="h-6 w-6 object-contain shrink-0 drop-shadow-[0_0_6px_hsl(var(--ws-error)/0.35)]"
+            draggable={false}
+          />
+          <span className="text-muted-foreground/60 text-sm font-medium tracking-tight">WriteStream</span>
           <span className="text-border text-sm">/</span>
           <span className="text-foreground font-semibold text-sm">{routeName}</span>
         </div>
