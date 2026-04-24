@@ -13,7 +13,7 @@ import {
   GitBranch, LayoutDashboard, Hammer, Search, Database,
   ArrowDownToLine, Eye, ScrollText, Settings, BarChart3,
   Play, RotateCcw, Download, Upload, Sun, Moon, Zap,
-  Server, Radio, FileCode,
+  Server, Radio, FileCode, BellRing, AlertTriangle, ExternalLink,
 } from 'lucide-react';
 
 const pages = [
@@ -24,6 +24,8 @@ const pages = [
   { label: 'Sources', path: '/sources', icon: Radio, keywords: ['sources', 'http', 'kafka', 'cdc', 'input'] },
   { label: 'Sinks', path: '/sinks', icon: ArrowDownToLine, keywords: ['sinks', 'output', 'postgresql', 'clickhouse', 'mysql'] },
   { label: 'Reactive Views', path: '/views', icon: Eye, keywords: ['views', 'reactive', 'materialized'] },
+  { label: 'Grafana Dashboards', path: '/grafana', icon: BarChart3, keywords: ['grafana', 'dashboards', 'observability', 'metrics', 'visualize'] },
+  { label: 'Alerts', path: '/alerts', icon: BellRing, keywords: ['alerts', 'notifications', 'incidents', 'pages', 'firing', 'silenced'] },
   { label: 'Logs', path: '/logs', icon: ScrollText, keywords: ['logs', 'events', 'debug', 'errors'] },
   { label: 'Operations', path: '/operations', icon: Settings, keywords: ['operations', 'ops', 'health', 'system'] },
   { label: 'Benchmarks', path: '/benchmarks', icon: BarChart3, keywords: ['benchmarks', 'performance', 'speed', 'test'] },
@@ -65,6 +67,8 @@ export function CommandPalette({ theme, onToggleTheme }: CommandPaletteProps) {
     { label: 'Reset Pipeline', icon: RotateCcw, action: () => navigate('/builder'), keywords: ['reset', 'clear'] },
     { label: 'Export YAML', icon: Download, action: () => navigate('/builder'), keywords: ['export', 'yaml', 'download'] },
     { label: 'Import YAML', icon: Upload, action: () => navigate('/builder'), keywords: ['import', 'yaml', 'upload'] },
+    { label: 'Open Grafana Workspace', icon: BarChart3, action: () => navigate('/grafana'), keywords: ['grafana', 'open', 'dashboards'] },
+    { label: 'View Firing Alerts', icon: AlertTriangle, action: () => navigate('/alerts'), keywords: ['alerts', 'firing', 'critical', 'incidents'] },
     { label: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`, icon: theme === 'dark' ? Sun : Moon, action: () => { onToggleTheme(); setOpen(false); }, keywords: ['theme', 'dark', 'light', 'mode', 'toggle'] },
   ], [theme, onToggleTheme, navigate]);
 
