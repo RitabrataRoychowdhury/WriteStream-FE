@@ -217,7 +217,7 @@ export function DagCanvas({
         onDrop={handleDrop}
         onDragLeave={handleDragLeave}
       >
-        <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+        <svg width="100%" height="100%">
           <defs>
             <marker id="builder-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
               <polygon points="0 0, 10 3.5, 0 7" fill="hsl(var(--primary))" opacity="0.6" />
