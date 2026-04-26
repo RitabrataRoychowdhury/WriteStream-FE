@@ -34,7 +34,8 @@ export function SankeyFlow({
   height = 380,
 }: SankeyFlowProps) {
   const uid = useId().replace(/:/g, '');
-  const total = targets.reduce((s, t) => s + Math.max(0, t.value), 0) || 1;
+  const safeTargets = Array.isArray(targets) ? targets : [];
+  const total = safeTargets.reduce((s, t) => s + Math.max(0, t.value), 0) || 1;
 
   const VB_W = 800;
   const VB_H = height;
@@ -46,9 +47,9 @@ export function SankeyFlow({
   const PADDING = 18;
 
   // Compute ribbon widths proportionally on source side
-  const totalSrcAvailable = SRC_H - PADDING * (targets.length - 1);
+  const totalSrcAvailable = SRC_H - PADDING * Math.max(0, safeTargets.length - 1);
   let srcCursor = SRC_Y - SRC_H / 2;
-  const ribbons = targets.map((t) => {
+  const ribbons = safeTargets.map((t) => {
     const w = Math.max(8, (Math.max(0, t.value) / total) * totalSrcAvailable);
     const srcTop = srcCursor;
     const srcBottom = srcCursor + w;
@@ -57,7 +58,7 @@ export function SankeyFlow({
   });
 
   // Target Y centers spaced evenly
-  const tgtSpacing = (VB_H - 60) / Math.max(1, targets.length);
+  const tgtSpacing = (VB_H - 60) / Math.max(1, safeTargets.length);
   const targetsLayout = ribbons.map((r, i) => {
     const cy = 30 + tgtSpacing * (i + 0.5);
     return { ...r, tgtCy: cy };
