@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { TopBar } from './TopBar';
 import { CommandPalette } from '@/components/shared/CommandPalette';
+import { HeroTransition } from '@/components/shared/HeroTransition';
 import { useTheme } from '@/hooks/useTheme';
 
 export function AppLayout() {
@@ -36,6 +37,8 @@ export function AppLayout() {
         </main>
         <CommandPalette theme={theme} onToggleTheme={toggleTheme} />
       </div>
+      {/* Cinematic route transition — plays hero video briefly on key navigations */}
+      <HeroTransition />
     </div>
   );
 }
