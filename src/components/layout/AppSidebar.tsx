@@ -14,7 +14,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Pipeline', path: '/', icon: GitBranch, color: 'text-ws-source' },
+  { label: 'Pipeline', path: '/pipeline', icon: GitBranch, color: 'text-ws-source' },
   { label: 'Builder', path: '/builder', icon: Workflow, color: 'text-ws-wal' },
   { label: 'Query', path: '/query', icon: Search, color: 'text-ws-info' },
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, color: 'text-ws-hotpath' },

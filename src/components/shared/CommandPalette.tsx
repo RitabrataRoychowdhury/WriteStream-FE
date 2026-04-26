@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 
 const pages = [
-  { label: 'Pipeline', path: '/', icon: GitBranch, keywords: ['pipeline', 'dag', 'flow', 'overview'] },
+  { label: 'Home', path: '/', icon: GitBranch, keywords: ['home', 'landing', 'hero', 'welcome'] },
+  { label: 'Pipeline', path: '/pipeline', icon: GitBranch, keywords: ['pipeline', 'dag', 'flow', 'overview'] },
   { label: 'Builder', path: '/builder', icon: Hammer, keywords: ['builder', 'create', 'design', 'yaml', 'visual'] },
   { label: 'Query', path: '/query', icon: Search, keywords: ['query', 'sql', 'search', 'data'] },
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, keywords: ['dashboard', 'metrics', 'stats', 'monitor'] },
