@@ -1,4 +1,4 @@
-import { Menu, Sun, Moon, Bell, Command } from 'lucide-react';
+import { Menu, Sun, Moon, Bell, Command, Home } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useGrafanaAlerts } from '@/hooks/useGrafanaAlerts';
 import wsMark from '@/assets/writestream-mark.png';
@@ -60,6 +60,16 @@ export function TopBar({ onToggleSidebar, theme, onToggleTheme }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-1.5">
+        {/* Back to cinematic landing */}
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-1.5 px-3 py-1.5 mr-1 rounded-lg border border-border/30 text-[11px] text-muted-foreground hover:text-foreground hover:border-border/60 hover:bg-secondary/40 transition-all duration-200 btn-magnetic"
+          title="Return to landing"
+        >
+          <Home className="h-3.5 w-3.5" />
+          <span className="hidden md:inline font-medium">Home</span>
+        </button>
+
         {/* Command palette hint */}
         <div
           onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}

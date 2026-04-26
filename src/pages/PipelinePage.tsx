@@ -3,7 +3,7 @@ import { useMetrics } from '@/hooks/useMetrics';
 import { StatusDot } from '@/components/shared/StatusDot';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { FloatingShape } from '@/components/shared/FloatingShape';
-import { X, ZoomIn, ZoomOut, Maximize2, Layers } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, Maximize2, Layers, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ComponentStatus } from '@/mocks/mockData';
 
@@ -140,19 +140,25 @@ export default function PipelinePage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <Layers className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Data Flow</span>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-semibold">Data Flow Theatre</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight font-display">
-              Pipeline <span className="text-gradient">Overview</span>
+              Pipeline <span className="text-gradient">Topology</span>
             </h1>
             <p className="text-sm text-muted-foreground mt-2 font-light">Real-time data flow visualization across all components</p>
           </div>
-          <div className="hidden md:flex items-center gap-1 glass-card p-1.5 rounded-xl">
-            <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200 btn-magnetic"><ZoomIn className="h-4 w-4" /></button>
-            <button onClick={() => setZoom(z => Math.max(0.4, z - 0.2))} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200 btn-magnetic"><ZoomOut className="h-4 w-4" /></button>
-            <div className="w-px h-5 bg-border/40" />
-            <button onClick={resetView} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200 btn-magnetic"><Maximize2 className="h-4 w-4" /></button>
-            <div className="px-2 text-[10px] font-mono text-muted-foreground">{Math.round(zoom * 100)}%</div>
+          <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/40 text-[11px] text-muted-foreground bg-card/40">
+              <Calendar className="h-3 w-3" />
+              <span>Last 24h</span>
+            </div>
+            <div className="flex items-center gap-1 glass-card p-1.5 rounded-xl">
+              <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200 btn-magnetic"><ZoomIn className="h-4 w-4" /></button>
+              <button onClick={() => setZoom(z => Math.max(0.4, z - 0.2))} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200 btn-magnetic"><ZoomOut className="h-4 w-4" /></button>
+              <div className="w-px h-5 bg-border/40" />
+              <button onClick={resetView} className="p-2 rounded-lg hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all duration-200 btn-magnetic"><Maximize2 className="h-4 w-4" /></button>
+              <div className="px-2 text-[10px] font-mono text-muted-foreground">{Math.round(zoom * 100)}%</div>
+            </div>
           </div>
         </div>
       </ScrollReveal>
@@ -160,14 +166,20 @@ export default function PipelinePage() {
       <div className="flex-1 flex gap-5 min-h-0">
         {/* DAG Canvas */}
         <div
-          className="flex-1 rounded-2xl border border-border/30 overflow-hidden cursor-grab active:cursor-grabbing relative"
-          style={{ background: 'hsl(var(--surface-elevated))' }}
+          className="flex-1 rounded-2xl border border-border/40 overflow-hidden cursor-grab active:cursor-grabbing relative"
+          style={{ background: 'linear-gradient(165deg, hsl(var(--surface-elevated)) 0%, hsl(var(--surface-2)) 100%)' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
         >
+          {/* Cinematic corner halos */}
+          <div className="pointer-events-none absolute -top-20 -right-20 h-60 w-60 rounded-full opacity-25 blur-3xl"
+            style={{ background: 'hsl(var(--ws-warning) / 0.5)' }} />
+          <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full opacity-20 blur-3xl"
+            style={{ background: 'hsl(var(--ws-wal) / 0.5)' }} />
+
           {/* Canvas dot pattern */}
           <div className="absolute inset-0 opacity-20" style={{
             backgroundImage: 'radial-gradient(circle, hsl(var(--canvas-dot)) 1px, transparent 1px)',
