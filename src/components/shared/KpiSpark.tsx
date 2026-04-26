@@ -32,14 +32,19 @@ export function KpiSpark({
   className,
   onOpen,
 }: KpiSparkProps) {
-  // Build sparkline path
+  // Build sparkline path — defensively normalise the series to avoid
+  // any "Cannot read properties of undefined" crashes on empty input.
   const W = 280;
   const H = 64;
   const PAD = 4;
-  const min = Math.min(...series, 0);
-  const max = Math.max(...series, 1);
+  const safeSeries: number[] =
+    Array.isArray(series) && series.length > 1
+      ? series.filter((n) => Number.isFinite(n))
+      : [0, 0];
+  const points = safeSeries.length > 1 ? safeSeries : [0, 0];
+  const min = Math.min(...points, 0);
+  const max = Math.max(...points, 1);
   const range = max - min || 1;
-  const points = series.length > 1 ? series : [0, 0];
   const stepX = (W - PAD * 2) / Math.max(1, points.length - 1);
 
   // Smooth Catmull-Rom-ish curve via cubic bezier between points
@@ -48,7 +53,10 @@ export function KpiSpark({
     y: PAD + (1 - (v - min) / range) * (H - PAD * 2),
   }));
 
-  let path = `M ${coords[0].x} ${coords[0].y}`;
+  const first = coords[0] ?? { x: PAD, y: H / 2 };
+  const last = coords[coords.length - 1] ?? first;
+
+  let path = `M ${first.x} ${first.y}`;
   for (let i = 0; i < coords.length - 1; i++) {
     const p0 = coords[i];
     const p1 = coords[i + 1];
@@ -56,11 +64,13 @@ export function KpiSpark({
     path += ` C ${cx} ${p0.y}, ${cx} ${p1.y}, ${p1.x} ${p1.y}`;
   }
 
-  const fillPath = `${path} L ${coords[coords.length - 1].x} ${H} L ${coords[0].x} ${H} Z`;
+  const fillPath = `${path} L ${last.x} ${H} L ${first.x} ${H} Z`;
 
-  // Find peak for marker
-  const peakIdx = coords.reduce((acc, p, i) => (p.y < coords[acc].y ? i : acc), 0);
-  const peak = coords[peakIdx];
+  // Find peak for marker (safe even when coords has a single point)
+  const peakIdx = coords.length
+    ? coords.reduce((acc, p, i) => (p.y < coords[acc].y ? i : acc), 0)
+    : 0;
+  const peak = coords[peakIdx] ?? first;
 
   const gradId = `spark-grad-${colorVar}-${title.replace(/\s+/g, '')}`;
 
