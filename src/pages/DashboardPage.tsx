@@ -1,20 +1,22 @@
 import { useLiveMetrics } from '@/hooks/useLiveMetrics';
 import { useMetrics } from '@/hooks/useMetrics';
-import { MetricCard } from '@/components/shared/MetricCard';
-import { MiniSparkline } from '@/components/shared/MiniSparkline';
+import { KpiSpark } from '@/components/shared/KpiSpark';
+import { SankeyFlow, type SankeyTarget } from '@/components/shared/SankeyFlow';
+import { PyramidBars } from '@/components/shared/PyramidBars';
 import { GaugeChart } from '@/components/shared/GaugeChart';
 import { StatusDot } from '@/components/shared/StatusDot';
 import { TiltCard } from '@/components/shared/TiltCard';
 import { ScrollReveal } from '@/components/shared/ScrollReveal';
 import { FloatingShape } from '@/components/shared/FloatingShape';
-import { Activity, Zap, Clock, HardDrive, Radio, Database, Eye, ArrowUpRight, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Zap, Clock, HardDrive, Radio, Database, Eye, Wifi, WifiOff, Calendar, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import type { ComponentStatus } from '@/mocks/mockData';
 
 export default function DashboardPage() {
   const live = useLiveMetrics(3000);
   const { metrics: mockMetrics } = useMetrics(2000);
+  const navigate = useNavigate();
 
   // Use live data if connected, mock otherwise
   const isLive = live.isLive;
@@ -81,86 +83,238 @@ export default function DashboardPage() {
         totalEntries: mockMetrics.reactive.totalEntries,
       };
 
+  // Build sankey targets from sources (left) -> sinks (right)
+  // Total represents total throughput flowing through the system
+  const colorPalette = ['ws-source', 'ws-hotpath', 'ws-wal', 'ws-shard', 'ws-sink', 'ws-reactive', 'ws-info'];
+
+  const sinkFlowTargets: SankeyTarget[] = (() => {
+    const list = isLive && live.sinks.length > 0
+      ? live.sinks.map((s, i) => ({
+          id: s.name,
+          label: s.name,
+          value: prom?.sinkEventsWritten[s.name] ?? Math.max(1, s.last_acknowledged_sequence),
+          colorVar: colorPalette[i % colorPalette.length],
+          sublabel: s.status === 'Enabled' ? 'streaming' : s.status,
+        }))
+      : mockMetrics.sinks.map((s, i) => ({
+          id: s.name,
+          label: s.name,
+          value: Math.max(1, Math.round(s.tps)),
+          colorVar: colorPalette[i % colorPalette.length],
+          sublabel: `${(s.tps / 1000).toFixed(1)}K /s`,
+        }));
+    return list.slice(0, 6);
+  })();
+
+  const totalThroughput = sinkFlowTargets.reduce((s, t) => s + t.value, 0);
+
+  // Sparkline series — uses tps history for primary KPIs
+  const tpsSeries = tpsHistory.slice(-20).map(h => h.tps);
+  const latencySeries = isLive && live.tpsHistory.length > 5
+    ? live.tpsHistory.slice(-20).map((_, i) => e2eLatencyP99 * (0.85 + 0.3 * Math.sin(i / 2)))
+    : mockMetrics.tpsHistory.slice(-20).map((_, i) => mockMetrics.e2eLatencyP99Ms * (0.85 + 0.3 * Math.sin(i / 2)));
+  const ingestSeries = tpsHistory.slice(-20).map((h, i) => h.tps * (0.9 + i * 0.005));
+
+  // Pyramid: source vs sink throughput buckets
+  const pyramidRows = (() => {
+    const len = Math.min(sourceCards.length, sinkFlowTargets.length, 6);
+    const rows: { bucket: string; left: number; right: number }[] = [];
+    for (let i = 0; i < len; i++) {
+      rows.push({
+        bucket: `T${i + 1}`,
+        left: Math.round(sourceCards[i]?.tps ?? 0),
+        right: Math.round(sinkFlowTargets[i]?.value ?? 0),
+      });
+    }
+    return rows.length > 0 ? rows : [
+      { bucket: 'T1', left: 1200, right: 1100 },
+      { bucket: 'T2', left: 980, right: 950 },
+      { bucket: 'T3', left: 760, right: 720 },
+      { bucket: 'T4', left: 540, right: 510 },
+    ];
+  })();
+
   return (
-    <div className="space-y-10 max-w-[1400px] mx-auto relative">
-      <FloatingShape variant="gradient-orb" size={200} className="top-0 -right-20 opacity-60" delay={0} />
-      <FloatingShape variant="ring" size={80} className="top-40 -left-10 opacity-40" delay={1200} />
-      <FloatingShape variant="dot-grid" size={100} className="top-[500px] right-10 opacity-30" delay={2400} />
+    <div className="space-y-8 max-w-[1500px] mx-auto relative">
+      <FloatingShape variant="gradient-orb" size={240} className="top-0 -right-20 opacity-50" delay={0} />
+      <FloatingShape variant="ring" size={80} className="top-40 -left-10 opacity-30" delay={1200} />
 
       {/* Header */}
       <ScrollReveal>
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
           <div>
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-3 mb-2">
               <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Real-time Monitoring</span>
+              <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground font-semibold">Operations Theatre</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight font-display">
-              Metrics <span className="text-gradient">Dashboard</span>
+              Stream <span className="text-gradient">Performance</span>
             </h1>
-            <p className="text-sm text-muted-foreground mt-2 font-light max-w-md">System performance overview with live telemetry from all pipeline components.</p>
+            <p className="text-sm text-muted-foreground mt-2 font-light max-w-xl">
+              Real-time telemetry across sources, sinks, and reactive views — visualized cinematically.
+            </p>
           </div>
-          <div className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-2xl glass-card text-xs text-muted-foreground">
-            <div className="flex items-center justify-center h-6 w-6 rounded-lg" style={{ background: isLive ? 'hsl(var(--ws-success) / 0.1)' : 'hsl(var(--ws-warning) / 0.1)' }}>
-              {isLive ? <Wifi className="h-3.5 w-3.5 text-ws-success" /> : <WifiOff className="h-3.5 w-3.5 text-ws-warning" />}
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border/40 text-[11px] text-muted-foreground bg-card/40">
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="font-medium">Last 24h</span>
             </div>
-            <span className="font-medium">{isLive ? 'Connected to backend' : 'Using mock data'}</span>
+            <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl text-[11px] font-medium" style={{
+              background: isLive ? 'hsl(var(--ws-success) / 0.08)' : 'hsl(var(--ws-warning) / 0.08)',
+              boxShadow: `inset 0 0 0 1px hsl(var(--${isLive ? 'ws-success' : 'ws-warning'}) / 0.2)`,
+              color: `hsl(var(--${isLive ? 'ws-success' : 'ws-warning'}))`,
+            }}>
+              {isLive ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+              <span>{isLive ? 'Live backend' : 'Mock data'}</span>
+            </div>
           </div>
         </div>
       </ScrollReveal>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <ScrollReveal delay={0}>
-          <MetricCard title="Events Ingested" value={totalEventsIngested.toLocaleString()} icon={<Activity className="h-4 w-4" />} color="text-primary" glowColor="hsl(var(--primary) / 0.08)">
-            <MiniSparkline data={tpsHistory.map(h => h.tps)} />
-          </MetricCard>
-        </ScrollReveal>
-        <ScrollReveal delay={80}>
-          <MetricCard title="Current TPS" value={`${(currentTps / 1000).toFixed(0)}K`} subtitle="/sec" icon={<Zap className="h-4 w-4" />} color="text-ws-hotpath" glowColor="hsl(var(--ws-hotpath) / 0.08)">
-            <GaugeChart value={currentTps} max={250000} color="hsl(var(--ws-hotpath))" />
-          </MetricCard>
-        </ScrollReveal>
-        <ScrollReveal delay={160}>
-          <MetricCard title="E2E Latency P99" value={`${e2eLatencyP99.toFixed(1)}`} subtitle="ms" icon={<Clock className="h-4 w-4" />} color="text-ws-wal" glowColor="hsl(var(--ws-wal) / 0.08)" />
-        </ScrollReveal>
-        <ScrollReveal delay={240}>
-          <MetricCard title="Backpressure Events" value={backpressure.toLocaleString()} icon={<HardDrive className="h-4 w-4" />} color="text-ws-wal" glowColor="hsl(var(--ws-wal) / 0.08)">
-            {backpressure > 0 && (
-              <span className="text-[10px] text-ws-warning font-medium mt-2 block">⚠ Backpressure detected</span>
-            )}
-          </MetricCard>
-        </ScrollReveal>
-      </div>
-
-      {/* Throughput chart */}
-      <ScrollReveal delay={100}>
-        <TiltCard className="p-6 md:p-8" intensity={0.3}>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-base font-semibold text-foreground font-display">Throughput History</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Events processed per second</p>
+      {/* Top: KPI row (left, 3 cards) + Demographics-style pyramid (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        {/* Left side: section header + 3 KPI cards */}
+        <div className="lg:col-span-3 space-y-4">
+          <ScrollReveal>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground font-display">Key Performance Metrics</h2>
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border border-border/30 rounded-lg px-2.5 py-1">
+                <Calendar className="h-3 w-3" />
+                <span>Last 24h</span>
+              </div>
             </div>
-            <span className="text-[10px] font-mono text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-lg border border-border/30">
-              {isLive ? 'live' : 'mock'} · 30s window
-            </span>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <ScrollReveal delay={0}>
+              <KpiSpark
+                title="Sequencer"
+                subtitle="Throughput / sec"
+                value={`${(currentTps / 1000).toFixed(0)}K`}
+                delta={{ value: '+6.2%', positive: true }}
+                icon={<Zap className="h-4 w-4" />}
+                colorVar="ws-hotpath"
+                series={tpsSeries.length > 1 ? tpsSeries : [10, 14, 12, 18, 22, 19, 25, 28, 24, 30]}
+                onOpen={() => navigate('/pipeline')}
+              />
+            </ScrollReveal>
+            <ScrollReveal delay={80}>
+              <KpiSpark
+                title="Ingest Path"
+                subtitle="Events / sec"
+                value={totalEventsIngested >= 1_000_000 ? `${(totalEventsIngested / 1_000_000).toFixed(1)}M` : `${(totalEventsIngested / 1000).toFixed(0)}K`}
+                delta={{ value: '+2.6%', positive: true }}
+                icon={<Activity className="h-4 w-4" />}
+                colorVar="ws-source"
+                series={ingestSeries.length > 1 ? ingestSeries : [5, 8, 12, 9, 14, 18, 16, 22, 26, 30]}
+                onOpen={() => navigate('/sources')}
+              />
+            </ScrollReveal>
+            <ScrollReveal delay={160}>
+              <KpiSpark
+                title="WAL Latency"
+                subtitle="P99 ms"
+                value={`${e2eLatencyP99.toFixed(1)}ms`}
+                delta={{ value: backpressure > 0 ? `${backpressure}` : '-3.4%', positive: backpressure === 0 }}
+                icon={<Clock className="h-4 w-4" />}
+                colorVar="ws-wal"
+                series={latencySeries.length > 1 ? latencySeries : [20, 18, 22, 19, 24, 21, 17, 19, 22, 18]}
+                onOpen={() => navigate('/operations')}
+              />
+            </ScrollReveal>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={tpsHistory}>
-              <defs>
-                <linearGradient id="tpsGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}K`} width={40} />
-              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 14, fontSize: 12, boxShadow: 'var(--shadow-floating)', padding: '10px 14px' }} />
-              <Area type="monotone" dataKey="tps" stroke="hsl(var(--primary))" fill="url(#tpsGrad)" strokeWidth={2} dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </TiltCard>
-      </ScrollReveal>
+
+          {/* Sankey flow — full width under KPIs */}
+          <ScrollReveal delay={120}>
+            <div className="rounded-2xl border border-border/40 p-5 md:p-6 mt-2 relative overflow-hidden"
+              style={{ background: 'linear-gradient(165deg, hsl(var(--surface-elevated)) 0%, hsl(var(--surface-2)) 100%)' }}>
+              <div className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full opacity-20 blur-3xl"
+                style={{ background: 'hsl(var(--ws-hotpath) / 0.5)' }} />
+              <div className="relative flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground font-display">Throughput Distribution</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Events ingested → routed to active sinks</p>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border border-border/30 rounded-lg px-2.5 py-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Last 24h</span>
+                </div>
+              </div>
+              <SankeyFlow
+                sourceLabel="Total Events"
+                sourceValue={totalThroughput >= 1_000_000 ? `${(totalThroughput / 1_000_000).toFixed(1)}M` : totalThroughput >= 1000 ? `${(totalThroughput / 1000).toFixed(1)}K` : `${totalThroughput}`}
+                sourceSublabel={`${sinkFlowTargets.length} sinks`}
+                targets={sinkFlowTargets}
+                height={360}
+              />
+            </div>
+          </ScrollReveal>
+        </div>
+
+        {/* Right side: pyramid + readmission-style gauge */}
+        <div className="lg:col-span-2 space-y-5">
+          <ScrollReveal delay={80}>
+            <div className="rounded-2xl border border-border/40 p-5 md:p-6 relative overflow-hidden"
+              style={{ background: 'linear-gradient(165deg, hsl(var(--surface-elevated)) 0%, hsl(var(--surface-2)) 100%)' }}>
+              <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full opacity-20 blur-3xl"
+                style={{ background: 'hsl(var(--ws-source) / 0.5)' }} />
+              <div className="relative flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-foreground font-display">Source / Sink Balance</h3>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border border-border/30 rounded-lg px-2.5 py-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Last 24h</span>
+                </div>
+              </div>
+              <PyramidBars
+                rows={pyramidRows}
+                leftLabel="Source TPS"
+                rightLabel="Sink TPS"
+                leftColorVar="ws-source"
+                rightColorVar="ws-sink"
+                height={290}
+              />
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={160}>
+            <div className="rounded-2xl border border-border/40 p-5 md:p-6 relative overflow-hidden"
+              style={{ background: 'linear-gradient(165deg, hsl(var(--surface-elevated)) 0%, hsl(var(--surface-2)) 100%)' }}>
+              <div className="pointer-events-none absolute -bottom-16 -right-12 h-40 w-40 rounded-full opacity-25 blur-3xl"
+                style={{ background: 'hsl(var(--ws-warning) / 0.55)' }} />
+              <div className="relative flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold text-foreground font-display">Backpressure Monitor</h3>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border border-border/30 rounded-lg px-2.5 py-1">
+                  <span>24h</span>
+                </div>
+              </div>
+              <div className="relative flex items-center justify-center py-2">
+                <GaugeChart
+                  value={Math.min(currentTps, 250000)}
+                  max={250000}
+                  color="hsl(var(--ws-warning))"
+                  size={180}
+                />
+              </div>
+              <div className="relative text-center mt-2">
+                <div className="text-[11px] text-muted-foreground">Saturation</div>
+                <div className="text-2xl font-bold text-foreground font-display tabular-nums mt-0.5">
+                  {((currentTps / 250000) * 100).toFixed(0)}%
+                </div>
+                <div className="text-[10px] text-muted-foreground/80 mt-1">
+                  {backpressure > 0 ? `${backpressure} events buffered` : 'No backpressure'}
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/operations')}
+                className="relative mt-4 w-full text-[11px] flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 text-muted-foreground hover:text-foreground hover:border-border/60 hover:bg-secondary/40 transition-all"
+              >
+                <span>Review backpressure events</span>
+                <span className="text-primary">See more →</span>
+              </button>
+            </div>
+          </ScrollReveal>
+        </div>
+      </div>
 
       {/* Sources + Reactive Views */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
