@@ -25,15 +25,16 @@ export function PyramidBars({
   rightColorVar,
   height = 280,
 }: PyramidBarsProps) {
+  const safeRows = Array.isArray(rows) ? rows : [];
   const VB_W = 600;
   const VB_H = height;
   const CENTER_X = VB_W / 2;
   const HALF_W = VB_W / 2 - 60;
   const max = Math.max(
-    ...rows.flatMap((r) => [r.left, r.right]),
+    ...safeRows.flatMap((r) => [r.left, r.right]),
     1,
   );
-  const rowH = (VB_H - 70) / Math.max(1, rows.length);
+  const rowH = (VB_H - 70) / Math.max(1, safeRows.length);
   const barH = Math.min(rowH * 0.62, 22);
 
   return (
@@ -50,7 +51,7 @@ export function PyramidBars({
         </text>
       </g>
 
-      {rows.map((r, i) => {
+      {safeRows.map((r, i) => {
         const cy = 50 + i * rowH + rowH / 2;
         const lW = (r.left / max) * HALF_W;
         const rW = (r.right / max) * HALF_W;
