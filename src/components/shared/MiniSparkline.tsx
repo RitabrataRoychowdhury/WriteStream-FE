@@ -6,7 +6,7 @@ interface MiniSparklineProps {
 }
 
 export function MiniSparkline({ data, color = 'hsl(var(--primary))', height = 32, width = 120 }: MiniSparklineProps) {
-  if (data.length < 2) return null;
+  if (!Array.isArray(data) || data.length < 2) return null;
 
   const min = Math.min(...data);
   const max = Math.max(...data);

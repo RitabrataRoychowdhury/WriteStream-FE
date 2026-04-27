@@ -154,7 +154,7 @@ export function KpiSpark({
       </div>
 
       {/* Sparkline */}
-      {series.length > 1 && (
+      {Array.isArray(series) && series.length > 1 && (
         <div className="relative mt-4 -mx-1">
           <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-16 w-full">
             <defs>
