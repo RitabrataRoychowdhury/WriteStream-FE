@@ -186,6 +186,10 @@
     font-feature-settings: "ss01", "cv11";
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   code, .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }
