@@ -1,18 +1,57 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { TopBar } from './TopBar';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { useTheme } from '@/hooks/useTheme';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 export function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  // On mobile we want the sidebar closed by default; on desktop, open.
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  );
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
 
+  // Auto-close the drawer after navigation on mobile so it never eats the viewport
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location.pathname, isMobile]);
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <AppSidebar open={sidebarOpen} onToggle={() => setSidebarOpen(o => !o)} currentPath={location.pathname} />
+      {/* Sidebar:
+          - desktop (md+): inline, takes width in flex layout
+          - mobile: fixed slide-over drawer with backdrop, never steals layout width */}
+      <div
+        className={cn(
+          'h-full z-40',
+          // Desktop: take part of the row
+          'md:relative md:translate-x-0',
+          // Mobile: fixed overlay
+          'fixed inset-y-0 left-0 transition-transform duration-300 ease-out',
+          isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'
+        )}
+      >
+        <AppSidebar
+          open={sidebarOpen}
+          onToggle={() => setSidebarOpen(o => !o)}
+          currentPath={location.pathname}
+        />
+      </div>
+
+      {/* Backdrop — only on mobile when drawer is open */}
+      {isMobile && sidebarOpen && (
+        <button
+          aria-label="Close menu"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-background/70 backdrop-blur-sm md:hidden animate-fade-in"
+        />
+      )}
+
       <div className="flex flex-1 flex-col min-w-0 relative">
         {/* Layered ambient background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -31,7 +70,7 @@ export function AppLayout() {
           theme={theme}
           onToggleTheme={toggleTheme}
         />
-        <main className="flex-1 overflow-auto p-5 md:p-8 relative z-0">
+        <main className="flex-1 overflow-auto p-3 md:p-8 relative z-0">
           <Outlet />
         </main>
         <CommandPalette theme={theme} onToggleTheme={toggleTheme} />
