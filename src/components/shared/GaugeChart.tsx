@@ -7,7 +7,9 @@ interface GaugeChartProps {
 }
 
 export function GaugeChart({ value, max, label, color = 'hsl(var(--primary))', size = 80 }: GaugeChartProps) {
-  const pct = Math.min(value / max, 1);
+  const safeValue = Number.isFinite(value) ? Math.max(0, value) : 0;
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 1;
+  const pct = Math.max(0, Math.min(safeValue / safeMax, 1));
   const r = (size - 8) / 2;
   const cx = size / 2;
   const cy = size / 2;
