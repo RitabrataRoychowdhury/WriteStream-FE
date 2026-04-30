@@ -45,8 +45,17 @@ export const postEvent = (key: string, payload: Record<string, unknown>) =>
   });
 
 // Prometheus metrics (raw text)
-export const fetchPrometheusMetrics = () =>
-  fetch(`${METRICS_URL}`).then(r => r.text());
+export const fetchPrometheusMetrics = async () => {
+  const r = await fetch(`${METRICS_URL}`);
+  if (!r.ok) throw new Error(`metrics HTTP ${r.status}`);
+  const text = await r.text();
+  // A real Prometheus exposition has '# HELP' / '# TYPE' lines.
+  // If we got HTML (proxy fallback / SPA index), treat as no backend.
+  if (text.startsWith('<') || (!text.includes('# HELP') && !text.includes('# TYPE'))) {
+    throw new Error('metrics: invalid response (no backend)');
+  }
+  return text;
+};
 
 // WebSocket
 export function createViewWebSocket(viewName: string, key: string | number): WebSocket {

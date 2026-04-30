@@ -61,13 +61,13 @@ export function useLiveMetrics(intervalMs = 3000) {
       failCount.current = 0;
     } catch {
       failCount.current++;
-      if (failCount.current >= 2) {
-        setState(prev => ({
-          ...prev,
-          isLive: false,
-          mockMetrics: generateMockMetrics(),
-        }));
-      }
+      // Fall back to mock right away on first failure so the UI never shows
+      // a misleading "Live" state with all-zero values.
+      setState(prev => ({
+        ...prev,
+        isLive: false,
+        mockMetrics: generateMockMetrics(),
+      }));
     }
   }, [intervalMs]);
 
