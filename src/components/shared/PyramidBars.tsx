@@ -25,15 +25,22 @@ export function PyramidBars({
   rightColorVar,
   height = 280,
 }: PyramidBarsProps) {
-  const safeRows = Array.isArray(rows) ? rows : [];
+  const safeRows = (Array.isArray(rows) ? rows : [])
+    .filter((r) => r && typeof r.bucket === 'string')
+    .map((r) => ({
+      bucket: r.bucket,
+      left: Number.isFinite(r.left) ? Math.max(0, r.left) : 0,
+      right: Number.isFinite(r.right) ? Math.max(0, r.right) : 0,
+    }));
   const VB_W = 600;
   const VB_H = height;
   const CENTER_X = VB_W / 2;
   const HALF_W = VB_W / 2 - 60;
-  const max = Math.max(
+  const maxCandidate = Math.max(
     ...safeRows.flatMap((r) => [r.left, r.right]),
     1,
   );
+  const max = Number.isFinite(maxCandidate) && maxCandidate > 0 ? maxCandidate : 1;
   const rowH = (VB_H - 70) / Math.max(1, safeRows.length);
   const barH = Math.min(rowH * 0.62, 22);
 

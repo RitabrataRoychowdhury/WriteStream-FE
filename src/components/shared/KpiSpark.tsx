@@ -42,16 +42,22 @@ export function KpiSpark({
       ? series.filter((n) => Number.isFinite(n))
       : [0, 0];
   const points = safeSeries.length > 1 ? safeSeries : [0, 0];
-  const min = Math.min(...points, 0);
-  const max = Math.max(...points, 1);
+  const finiteMin = Math.min(...points, 0);
+  const finiteMax = Math.max(...points, 1);
+  const min = Number.isFinite(finiteMin) ? finiteMin : 0;
+  const max = Number.isFinite(finiteMax) ? finiteMax : 1;
   const range = max - min || 1;
   const stepX = (W - PAD * 2) / Math.max(1, points.length - 1);
 
   // Smooth Catmull-Rom-ish curve via cubic bezier between points
-  const coords = points.map((v, i) => ({
-    x: PAD + i * stepX,
-    y: PAD + (1 - (v - min) / range) * (H - PAD * 2),
-  }));
+  const coords = points.map((v, i) => {
+    const x = PAD + i * stepX;
+    const y = PAD + (1 - (v - min) / range) * (H - PAD * 2);
+    return {
+      x: Number.isFinite(x) ? x : PAD,
+      y: Number.isFinite(y) ? y : H / 2,
+    };
+  });
 
   const first = coords[0] ?? { x: PAD, y: H / 2 };
   const last = coords[coords.length - 1] ?? first;
@@ -72,7 +78,7 @@ export function KpiSpark({
     : 0;
   const peak = coords[peakIdx] ?? first;
 
-  const gradId = `spark-grad-${colorVar}-${title.replace(/\s+/g, '')}`;
+  const gradId = `spark-grad-${colorVar}-${(title || 'kpi').replace(/[^A-Za-z0-9_-]/g, '')}`;
 
   return (
     <div

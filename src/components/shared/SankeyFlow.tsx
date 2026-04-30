@@ -34,8 +34,16 @@ export function SankeyFlow({
   height = 380,
 }: SankeyFlowProps) {
   const uid = useId().replace(/:/g, '');
-  const safeTargets = Array.isArray(targets) ? targets : [];
-  const total = safeTargets.reduce((s, t) => s + Math.max(0, t.value), 0) || 1;
+  const safeTargets = (Array.isArray(targets) ? targets : [])
+    .filter((t) => t && typeof t.id === 'string')
+    .map((t) => ({
+      ...t,
+      value: Number.isFinite(t.value) ? Math.max(0, t.value) : 0,
+      label: t.label ?? '',
+      colorVar: t.colorVar || 'primary',
+    }));
+  const total =
+    safeTargets.reduce((s, t) => s + t.value, 0) || 1;
 
   const VB_W = 800;
   const VB_H = height;
