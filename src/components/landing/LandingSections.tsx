@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { CountUp } from './CountUp';
 import architectureSystem from '@/assets/architecture-system.png';
+import writestreamSignature from '@/assets/writestream-signature.png';
 
 /* ────────────────────────────────────────────────────────────────
    Reusable scroll-reveal wrapper (no Framer Motion)
@@ -77,6 +78,66 @@ function ProblemSection() {
         style={{ background: 'radial-gradient(ellipse, hsl(14 90% 55% / 0.08), transparent 70%)' }} />
 
       <div className="relative max-w-7xl mx-auto">
+        {/* ── Signature liquid-glass hero image ── */}
+        <Reveal>
+          <div className="relative mx-auto mb-20 md:mb-28 max-w-3xl">
+            {/* Outer red bloom */}
+            <div className="pointer-events-none absolute -inset-16 blur-3xl opacity-70"
+              style={{ background: 'radial-gradient(ellipse at 50% 55%, hsl(14 95% 55% / 0.35), hsl(14 90% 50% / 0.12) 40%, transparent 70%)' }} />
+
+            {/* Liquid glass container */}
+            <div className="group relative rounded-[36px] overflow-hidden border border-white/15
+                            bg-gradient-to-br from-white/[0.08] via-white/[0.02] to-white/[0.06]
+                            shadow-[0_30px_80px_-20px_hsl(14_90%_45%/0.45),0_0_0_1px_hsl(0_0%_100%/0.04)_inset]
+                            backdrop-blur-xl">
+              {/* Specular highlight (top sheen) */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 opacity-80"
+                style={{ background: 'linear-gradient(180deg, hsl(0 0% 100% / 0.18) 0%, hsl(0 0% 100% / 0.04) 40%, transparent 100%)' }} />
+              {/* Edge light */}
+              <div className="pointer-events-none absolute inset-0 rounded-[36px]"
+                style={{ boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.25), inset 0 -1px 0 hsl(14 90% 55% / 0.18)' }} />
+              {/* Liquid color refraction sweep */}
+              <div className="pointer-events-none absolute -inset-1 opacity-60 mix-blend-screen animate-[liquid-sweep_8s_ease-in-out_infinite]"
+                style={{ background: 'conic-gradient(from 140deg at 50% 50%, transparent 0deg, hsl(14 95% 60% / 0.25) 60deg, transparent 140deg, hsl(14 90% 55% / 0.18) 240deg, transparent 320deg)' }} />
+
+              {/* The image itself */}
+              <div className="relative p-2 md:p-4">
+                <img
+                  src={writestreamSignature}
+                  alt="WriteStream — write-side control plane for event-driven systems"
+                  className="relative w-full h-auto rounded-[28px] select-none transition-transform duration-1000 group-hover:scale-[1.015]"
+                  draggable={false}
+                />
+                {/* Inner glass tint over image */}
+                <div className="pointer-events-none absolute inset-2 md:inset-4 rounded-[28px]"
+                  style={{ background: 'linear-gradient(180deg, hsl(0 0% 100% / 0.06) 0%, transparent 30%, transparent 70%, hsl(220 40% 4% / 0.35) 100%)' }} />
+                {/* Subtle scanline grain */}
+                <div className="pointer-events-none absolute inset-2 md:inset-4 rounded-[28px] opacity-[0.06] mix-blend-overlay"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E\")",
+                  }} />
+              </div>
+            </div>
+
+            {/* Reflection */}
+            <div className="pointer-events-none absolute left-8 right-8 -bottom-12 h-24 opacity-50 blur-md"
+              style={{
+                background: 'radial-gradient(ellipse at center, hsl(14 90% 55% / 0.4), transparent 70%)',
+                transform: 'scaleY(-1)',
+              }} />
+
+            {/* Caption */}
+            <div className="relative mt-10 text-center">
+              <div className="inline-flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.32em] text-white/45">
+                <span className="h-px w-8 bg-gradient-to-r from-transparent to-[hsl(14_90%_60%)]" />
+                The WriteStream control plane
+                <span className="h-px w-8 bg-gradient-to-l from-transparent to-[hsl(14_90%_60%)]" />
+              </div>
+            </div>
+          </div>
+        </Reveal>
+
         <Reveal>
           <div className="text-center max-w-3xl mx-auto mb-16">
             <SectionEyebrow>The problem</SectionEyebrow>
