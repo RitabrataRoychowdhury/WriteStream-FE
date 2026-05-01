@@ -4,7 +4,6 @@ import {
   ArrowRight, GitMerge, Split, Shield, FileCode, Rss, Layers, ShieldCheck,
   Activity, Database, Github, Mail, Copy, Check,
 } from 'lucide-react';
-import { ArchitectureDiagram } from './ArchitectureDiagram';
 import { CountUp } from './CountUp';
 import architectureSystem from '@/assets/architecture-system.png';
 
