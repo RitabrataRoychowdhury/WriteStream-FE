@@ -4,7 +4,7 @@ import { ArrowRight, Activity, Github, ChevronDown } from 'lucide-react';
 import wsMark from '@/assets/writestream-mark.png';
 import { LandingSections } from '@/components/landing/LandingSections';
 
-const INTRO_KEY = 'ws_intro_played_v1';
+const INTRO_KEY = 'ws_intro_played_v3';
 
 export default function LandingPage() {
   // Show intro once per session. Skip on reduced-motion.
@@ -18,6 +18,15 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (introDone) return;
+    // Force play (some browsers need an explicit call even with autoplay)
+    const v = videoRef.current;
+    if (v) {
+      v.muted = true;
+      const p = v.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => finishIntro());
+      }
+    }
     // Safety fallback in case video fails to fire onEnded
     const t = setTimeout(() => finishIntro(), 12000);
     return () => clearTimeout(t);
