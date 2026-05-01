@@ -1,11 +1,67 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Activity, Github, ChevronDown } from 'lucide-react';
 import wsMark from '@/assets/writestream-mark.png';
 import { LandingSections } from '@/components/landing/LandingSections';
 
+const INTRO_KEY = 'ws_intro_played_v1';
+
 export default function LandingPage() {
+  // Show intro once per session. Skip on reduced-motion.
+  const [introDone, setIntroDone] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true;
+    return sessionStorage.getItem(INTRO_KEY) === '1';
+  });
+  const [fadeOut, setFadeOut] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (introDone) return;
+    // Safety fallback in case video fails to fire onEnded
+    const t = setTimeout(() => finishIntro(), 12000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [introDone]);
+
+  const finishIntro = () => {
+    if (fadeOut) return;
+    setFadeOut(true);
+    sessionStorage.setItem(INTRO_KEY, '1');
+    setTimeout(() => setIntroDone(true), 700);
+  };
+
   return (
     <div className="relative w-full overflow-x-hidden bg-[hsl(220_30%_4%)] text-white">
+      {/* ───────── Intro overlay ───────── */}
+      {!introDone && (
+        <div
+          className={`fixed inset-0 z-[100] bg-black flex items-center justify-center transition-opacity duration-700 ${
+            fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            onEnded={finishIntro}
+            onError={finishIntro}
+            className="w-full h-full object-cover"
+          >
+            <source src="/intro/system-transformation.mp4" type="video/mp4" />
+          </video>
+          <button
+            onClick={finishIntro}
+            className="absolute bottom-8 right-8 text-[10px] uppercase tracking-[0.3em] font-mono text-white/50 hover:text-white/90 transition-colors border border-white/15 rounded-full px-4 py-2 backdrop-blur-sm bg-white/[0.03]"
+            aria-label="Skip intro"
+          >
+            Skip
+          </button>
+        </div>
+      )}
+
       {/* ───────── HERO (full viewport, video background) ───────── */}
       <section className="relative min-h-screen w-full overflow-hidden">
         {/* Background video */}
