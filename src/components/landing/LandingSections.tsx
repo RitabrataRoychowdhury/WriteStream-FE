@@ -4,8 +4,8 @@ import {
   ArrowRight, GitMerge, Split, Shield, FileCode, Rss, Layers, ShieldCheck,
   Activity, Database, Github, Mail, Copy, Check,
 } from 'lucide-react';
-import { ArchitectureDiagram } from './ArchitectureDiagram';
 import { CountUp } from './CountUp';
+import architectureSystem from '@/assets/architecture-system.png';
 
 /* ────────────────────────────────────────────────────────────────
    Reusable scroll-reveal wrapper (no Framer Motion)
@@ -151,8 +151,92 @@ function ArchitectureSection() {
         </Reveal>
 
         <Reveal delay={200}>
-          <div className="rounded-3xl border border-white/[0.06] bg-gradient-to-b from-white/[0.02] to-transparent p-4 md:p-8 backdrop-blur-sm">
-            <ArchitectureDiagram />
+          <div className="relative rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.02] to-transparent p-3 md:p-6 backdrop-blur-sm overflow-hidden group">
+            {/* Ambient red glow behind the image */}
+            <div className="pointer-events-none absolute inset-0 opacity-70"
+              style={{ background: 'radial-gradient(ellipse at 50% 50%, hsl(14 90% 55% / 0.18), transparent 65%)' }} />
+
+            <div className="relative rounded-2xl overflow-hidden">
+              <img
+                src={architectureSystem}
+                alt="WriteStream system architecture — sources, sequencer ring, sharded core, and sinks"
+                className="relative z-0 w-full h-auto select-none"
+                draggable={false}
+              />
+
+              {/* Aggressive flowing red light rays overlay */}
+              <svg
+                className="pointer-events-none absolute inset-0 w-full h-full z-10 mix-blend-screen"
+                viewBox="0 0 100 60"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="ray-h" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"  stopColor="hsl(14 100% 65%)" stopOpacity="0" />
+                    <stop offset="45%" stopColor="hsl(14 100% 65%)" stopOpacity="0.95" />
+                    <stop offset="55%" stopColor="hsl(14 100% 70%)" stopOpacity="1" />
+                    <stop offset="100%" stopColor="hsl(14 100% 65%)" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="ray-v" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"  stopColor="hsl(14 100% 65%)" stopOpacity="0" />
+                    <stop offset="50%" stopColor="hsl(14 100% 70%)" stopOpacity="1" />
+                    <stop offset="100%" stopColor="hsl(14 100% 65%)" stopOpacity="0" />
+                  </linearGradient>
+                  <filter id="ray-blur"><feGaussianBlur stdDeviation="0.25" /></filter>
+                </defs>
+
+                {/* Horizontal sweeping rays at varied y positions / speeds */}
+                {[
+                  { y: 12, h: 0.5, dur: 4.2, delay: 0 },
+                  { y: 22, h: 0.35, dur: 3.4, delay: 0.6 },
+                  { y: 31, h: 0.6, dur: 5.1, delay: 1.2 },
+                  { y: 40, h: 0.4, dur: 3.8, delay: 0.3 },
+                  { y: 49, h: 0.5, dur: 4.6, delay: 1.8 },
+                ].map((r, i) => (
+                  <g key={`h-${i}`} filter="url(#ray-blur)">
+                    <rect x="-30" y={r.y} width="30" height={r.h} fill="url(#ray-h)">
+                      <animate
+                        attributeName="x"
+                        from="-30" to="130"
+                        dur={`${r.dur}s`}
+                        begin={`${r.delay}s`}
+                        repeatCount="indefinite"
+                      />
+                    </rect>
+                  </g>
+                ))}
+
+                {/* Vertical pulses through the central spine */}
+                {[
+                  { x: 28, w: 0.35, dur: 3.2, delay: 0.4 },
+                  { x: 50, w: 0.5, dur: 2.6, delay: 0 },
+                  { x: 72, w: 0.35, dur: 3.6, delay: 1.0 },
+                ].map((r, i) => (
+                  <g key={`v-${i}`} filter="url(#ray-blur)">
+                    <rect x={r.x} y="-20" width={r.w} height="20" fill="url(#ray-v)">
+                      <animate
+                        attributeName="y"
+                        from="-20" to="80"
+                        dur={`${r.dur}s`}
+                        begin={`${r.delay}s`}
+                        repeatCount="indefinite"
+                      />
+                    </rect>
+                  </g>
+                ))}
+              </svg>
+
+              {/* Pulse vignette to make the rays pop */}
+              <div className="pointer-events-none absolute inset-0 z-20"
+                style={{ background: 'radial-gradient(ellipse at center, transparent 55%, hsl(220 40% 3% / 0.55) 100%)' }} />
+            </div>
+
+            {/* Caption strip */}
+            <div className="relative mt-4 flex items-center justify-between px-2 text-[10px] uppercase tracking-[0.25em] font-mono text-white/40">
+              <span>Sources → Sequencer → WAL → Shards → Sinks</span>
+              <span className="hidden md:inline text-[hsl(14_90%_65%)]/70">Live energy · 1M+ events/s</span>
+            </div>
           </div>
         </Reveal>
       </div>
