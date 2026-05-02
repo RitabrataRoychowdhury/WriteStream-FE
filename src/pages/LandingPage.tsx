@@ -47,6 +47,16 @@ export default function LandingPage() {
   const stageWrapRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
 
+  // Enable snap on the root scroller while the hero is mounted
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.scrollSnapType;
+    html.style.scrollSnapType = 'y mandatory';
+    return () => {
+      html.style.scrollSnapType = prev;
+    };
+  }, []);
+
   useEffect(() => {
     const onScroll = () => {
       const el = stageWrapRef.current;
@@ -110,10 +120,7 @@ export default function LandingPage() {
       <div
         ref={stageWrapRef}
         className="relative w-full"
-        style={{
-          height: '300vh',
-          scrollSnapType: 'y mandatory',
-        }}
+        style={{ height: '300vh' }}
       >
         {/* Snap targets — one per stage */}
         <div className="absolute inset-x-0 top-0 h-screen" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }} />
