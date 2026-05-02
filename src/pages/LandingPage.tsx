@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Activity, Github, ChevronDown } from 'lucide-react';
 import wsMark from '@/assets/writestream-mark.png';
+import heroStage1 from '@/assets/hero-stage-1.png';
+import heroStage2 from '@/assets/hero-stage-2.png';
+import heroStage3 from '@/assets/hero-stage-3.png';
 import { LandingSections } from '@/components/landing/LandingSections';
 
 const INTRO_KEY = 'ws_intro_played_v3';
@@ -40,6 +43,38 @@ export default function LandingPage() {
     setTimeout(() => setIntroDone(true), 700);
   };
 
+  // Scroll-driven hero stage progress (0 → 2 across 3 viewport heights)
+  const stageWrapRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const el = stageWrapRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const total = el.offsetHeight - window.innerHeight;
+      const scrolled = Math.min(Math.max(-rect.top, 0), total);
+      setProgress(total > 0 ? (scrolled / total) * 2 : 0); // 0..2
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
+
+  // Per-stage opacity using overlapping crossfades
+  const op1 = Math.max(0, 1 - Math.max(0, progress));            // 1 → 0 over [0,1]
+  const op2 = Math.max(0, 1 - Math.abs(progress - 1));           // peak at 1
+  const op3 = Math.max(0, Math.min(1, progress - 1));            // 0 → 1 over [1,2]
+
+  // Camera-rotation feel via 3D transforms per stage
+  const t1 = `rotateY(${progress * -18}deg) rotateX(${progress * 4}deg) scale(${1 + progress * 0.06})`;
+  const t2 = `rotateY(${(progress - 1) * -18}deg) rotateX(${(progress - 1) * 4}deg) scale(${1 + Math.abs(progress - 1) * 0.04})`;
+  const t3 = `rotateY(${(progress - 2) * -18}deg) rotateX(${(progress - 2) * 4}deg) scale(${1 + Math.abs(progress - 2) * 0.04})`;
+
   return (
     <div className="relative w-full overflow-x-hidden bg-[hsl(220_30%_4%)] text-white">
       {/* ───────── Intro overlay ───────── */}
@@ -71,25 +106,42 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* ───────── HERO (full viewport, video background) ───────── */}
-      <section className="relative min-h-screen w-full overflow-hidden">
-        {/* Background video */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover z-0"
-        >
-          <source
-            src="https://res.cloudinary.com/dfonotyfb/video/upload/v1775585556/dds3_1_rqhg7x.mp4"
-            type="video/mp4"
-          />
-        </video>
+      {/* ───────── HERO — scroll-driven 3-stage cinematic sequence ───────── */}
+      <div ref={stageWrapRef} className="relative w-full" style={{ height: '300vh' }}>
+        <section className="sticky top-0 h-screen w-full overflow-hidden">
+          {/* Stage images — locked, crossfaded with subtle camera rotation */}
+          <div
+            className="absolute inset-0 z-0"
+            style={{ perspective: '1400px', perspectiveOrigin: '50% 50%' }}
+          >
+            {[
+              { src: heroStage1, op: op1, t: t1 },
+              { src: heroStage2, op: op2, t: t2 },
+              { src: heroStage3, op: op3, t: t3 },
+            ].map((s, i) => (
+              <div
+                key={i}
+                className="absolute inset-0 will-change-transform"
+                style={{
+                  opacity: s.op,
+                  transform: s.t,
+                  transformStyle: 'preserve-3d',
+                  transition: 'opacity 120ms linear',
+                }}
+              >
+                <img
+                  src={s.src}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
 
         {/* Cinematic overlays */}
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(220_40%_3%/0.55)_55%,hsl(220_40%_3%/0.92)_100%)]" />
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-[hsl(220_40%_3%/0.55)] via-transparent to-[hsl(220_40%_3%/0.95)]" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(220_40%_3%/0.45)_60%,hsl(220_40%_3%/0.9)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-[hsl(220_40%_3%/0.5)] via-transparent to-[hsl(220_40%_3%/0.95)] pointer-events-none" />
         {/* Subtle scanline / grain */}
         <div
           className="absolute inset-0 z-10 opacity-[0.05] mix-blend-overlay pointer-events-none"
@@ -130,10 +182,17 @@ export default function LandingPage() {
         </a>
       </header>
 
-        {/* Hero content */}
-        <main className="relative z-20 flex flex-col items-center justify-center text-center px-6 min-h-[calc(100vh-5rem)] pb-24">
+        {/* Hero content — fades out as user scrolls into stage 2 */}
+        <main
+          className="relative z-20 flex flex-col items-center justify-center text-center px-6 min-h-[calc(100vh-5rem)] pb-24"
+          style={{
+            opacity: Math.max(0, 1 - progress * 1.2),
+            transform: `translateY(${progress * -30}px)`,
+            transition: 'opacity 120ms linear, transform 120ms linear',
+          }}
+        >
         {/* Status pill */}
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-md px-4 py-1.5 text-[11px] tracking-[0.18em] uppercase text-white/70">
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-xl px-4 py-1.5 text-[11px] tracking-[0.18em] uppercase text-white/80 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.15),0_8px_32px_-8px_hsl(14_90%_55%/0.25)]">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[hsl(140_70%_55%)] opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[hsl(140_70%_55%)]" />
@@ -141,16 +200,34 @@ export default function LandingPage() {
           Live · v0.1 Engine Online
         </div>
 
-        <h1 className="font-display text-[clamp(2.75rem,8vw,6.5rem)] font-semibold leading-[0.95] tracking-[-0.04em] max-w-5xl">
-          <span className="block bg-gradient-to-b from-white via-white to-white/40 bg-clip-text text-transparent">
-            Streaming,
-          </span>
-          <span className="block italic font-light bg-gradient-to-r from-[hsl(14_90%_65%)] via-[hsl(28_95%_60%)] to-[hsl(14_90%_55%)] bg-clip-text text-transparent">
-            sequenced.
-          </span>
-        </h1>
+        {/* Liquid-glass headline */}
+        <div className="relative inline-block">
+          <div
+            aria-hidden
+            className="absolute -inset-x-10 -inset-y-6 rounded-[2rem] bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.12),0_30px_80px_-30px_hsl(14_90%_55%/0.35)] overflow-hidden"
+          >
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, hsl(14 90% 55% / 0.18), transparent 30%, hsl(220 30% 80% / 0.1) 55%, transparent 80%, hsl(14 90% 55% / 0.18))',
+                animation: 'liquid-sweep 14s ease-in-out infinite',
+                filter: 'blur(28px)',
+              }}
+            />
+            <div className="absolute inset-x-6 top-1 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+          </div>
+          <h1 className="relative font-display text-[clamp(2.75rem,8vw,6.5rem)] font-semibold leading-[0.95] tracking-[-0.04em] max-w-5xl px-6">
+            <span className="block bg-gradient-to-b from-white via-white to-white/40 bg-clip-text text-transparent drop-shadow-[0_2px_24px_hsl(0_0%_100%/0.18)]">
+              Streaming,
+            </span>
+            <span className="block italic font-light bg-gradient-to-r from-[hsl(14_90%_65%)] via-[hsl(28_95%_60%)] to-[hsl(14_90%_55%)] bg-clip-text text-transparent drop-shadow-[0_2px_28px_hsl(14_90%_55%/0.5)]">
+              sequenced.
+            </span>
+          </h1>
+        </div>
 
-        <p className="mt-7 max-w-xl text-base md:text-lg text-white/60 leading-relaxed">
+        <p className="mt-7 max-w-xl text-base md:text-lg text-white/70 leading-relaxed backdrop-blur-sm">
           A deterministic streaming engine with a write-ahead log, sharded execution,
           and reactive views — built for operators who need to see every event.
         </p>
@@ -167,7 +244,7 @@ export default function LandingPage() {
           </Link>
           <a
             href="#architecture"
-            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.03] backdrop-blur-md px-6 py-3 text-sm font-medium text-white/90 hover:bg-white/10 transition-colors"
+            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-xl px-6 py-3 text-sm font-medium text-white/90 hover:bg-white/10 transition-colors shadow-[inset_0_1px_0_hsl(0_0%_100%/0.12)]"
           >
             See architecture
             <ChevronDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
@@ -182,16 +259,43 @@ export default function LandingPage() {
         </div>
         </main>
 
-        {/* Scroll cue */}
-        <a
-          href="#problem"
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/40 hover:text-white/80 transition-colors animate-float"
-          aria-label="Scroll down"
-        >
-          <span className="text-[10px] uppercase tracking-[0.3em] font-mono">Scroll</span>
-          <ChevronDown className="h-4 w-4" />
-        </a>
-      </section>
+          {/* Scroll cue */}
+          <a
+            href="#problem"
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/40 hover:text-white/80 transition-colors animate-float"
+            style={{ opacity: Math.max(0, 1 - progress * 1.5) }}
+            aria-label="Scroll down"
+          >
+            <span className="text-[10px] uppercase tracking-[0.3em] font-mono">Scroll</span>
+            <ChevronDown className="h-4 w-4" />
+          </a>
+
+          {/* Stage indicator (right rail) */}
+          <div className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
+            {[0, 1, 2].map((i) => {
+              const active = Math.round(progress) === i;
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <span
+                    className={`text-[9px] font-mono tracking-[0.25em] uppercase transition-colors ${
+                      active ? 'text-white/80' : 'text-white/30'
+                    }`}
+                  >
+                    {['Intact', 'Layered', 'Expanded'][i]}
+                  </span>
+                  <span
+                    className={`block h-px transition-all duration-500 ${
+                      active
+                        ? 'w-10 bg-[hsl(14_90%_55%)] shadow-[0_0_10px_hsl(14_90%_55%/0.8)]'
+                        : 'w-5 bg-white/20'
+                    }`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
 
       {/* ───────── Marketing sections ───────── */}
       <LandingSections />
