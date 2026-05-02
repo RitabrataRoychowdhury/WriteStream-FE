@@ -47,6 +47,16 @@ export default function LandingPage() {
   const stageWrapRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
 
+  // Enable snap on the root scroller while the hero is mounted
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.scrollSnapType;
+    html.style.scrollSnapType = 'y mandatory';
+    return () => {
+      html.style.scrollSnapType = prev;
+    };
+  }, []);
+
   useEffect(() => {
     const onScroll = () => {
       const el = stageWrapRef.current;
@@ -107,7 +117,16 @@ export default function LandingPage() {
       )}
 
       {/* ───────── HERO — scroll-driven 3-stage cinematic sequence ───────── */}
-      <div ref={stageWrapRef} className="relative w-full" style={{ height: '300vh' }}>
+      <div
+        ref={stageWrapRef}
+        className="relative w-full"
+        style={{ height: '300vh' }}
+      >
+        {/* Snap targets — one per stage */}
+        <div className="absolute inset-x-0 top-0 h-screen" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }} />
+        <div className="absolute inset-x-0 top-[100vh] h-screen" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }} />
+        <div className="absolute inset-x-0 top-[200vh] h-screen" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }} />
+
         <section className="sticky top-0 h-screen w-full overflow-hidden">
           {/* Stage images — locked, crossfaded with subtle camera rotation */}
           <div
@@ -132,7 +151,7 @@ export default function LandingPage() {
                 <img
                   src={s.src}
                   alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-contain md:object-cover"
                   draggable={false}
                 />
               </div>
