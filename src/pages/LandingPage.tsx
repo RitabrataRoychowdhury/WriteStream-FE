@@ -80,10 +80,12 @@ export default function LandingPage() {
   const op2 = Math.max(0, 1 - Math.abs(progress - 1));           // peak at 1
   const op3 = Math.max(0, Math.min(1, progress - 1));            // 0 → 1 over [1,2]
 
-  // Camera-rotation feel via 3D transforms per stage
-  const t1 = `rotateY(${progress * -18}deg) rotateX(${progress * 4}deg) scale(${1 + progress * 0.06})`;
-  const t2 = `rotateY(${(progress - 1) * -18}deg) rotateX(${(progress - 1) * 4}deg) scale(${1 + Math.abs(progress - 1) * 0.04})`;
-  const t3 = `rotateY(${(progress - 2) * -18}deg) rotateX(${(progress - 2) * 4}deg) scale(${1 + Math.abs(progress - 2) * 0.04})`;
+  // Camera-rotation feel via 3D transforms per stage.
+  // Each transform is centered on its own stage index so the image lands flat (0deg, scale 1)
+  // exactly at its snap point — no drift into letterboxed black between stages.
+  const t1 = `rotateY(${progress * -10}deg) scale(${1 + progress * 0.04})`;
+  const t2 = `rotateY(${(progress - 1) * -10}deg) scale(${1 + Math.abs(progress - 1) * 0.04})`;
+  const t3 = `rotateY(${(progress - 2) * -10}deg) scale(${1 + Math.abs(progress - 2) * 0.04})`;
 
   return (
     <div className="relative w-full overflow-x-hidden bg-[hsl(220_30%_4%)] text-white">
@@ -151,7 +153,7 @@ export default function LandingPage() {
                 <img
                   src={s.src}
                   alt=""
-                  className="absolute inset-0 w-full h-full object-contain md:object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                   draggable={false}
                 />
               </div>
