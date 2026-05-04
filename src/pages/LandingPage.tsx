@@ -43,10 +43,6 @@ export default function LandingPage() {
     setTimeout(() => setIntroDone(true), 700);
   };
 
-  // Scroll-driven hero stage progress (0 → 2 across 3 viewport heights)
-  const stageWrapRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-
   // Enable snap on the root scroller while the hero is mounted
   useEffect(() => {
     const html = document.documentElement;
@@ -57,45 +53,7 @@ export default function LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const onScroll = () => {
-      const el = stageWrapRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const total = el.offsetHeight - window.innerHeight;
-      const scrolled = Math.min(Math.max(-rect.top, 0), total);
-      setProgress(total > 0 ? (scrolled / total) * 2 : 0); // 0..2
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, []);
-
-  const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
-  const ease = (value: number) => {
-    const x = clamp01(value);
-    return x * x * (3 - 2 * x);
-  };
-
-  const intoStage2 = ease((progress - 0.72) / 0.28);
-  const intoStage3 = ease((progress - 1.72) / 0.28);
-
-  // Keep a fully opaque stage underneath the incoming frame so the scroll
-  // transition never composites over the black page background.
-  const op1 = progress < 1 ? 1 : 0;
-  const op2 = progress < 1 ? intoStage2 : 1;
-  const op3 = progress < 1 ? 0 : intoStage3;
-
-  // Camera-rotation feel via 3D transforms per stage.
-  // Each transform is centered on its own stage index so the image lands flat (0deg, scale 1)
-  // exactly at its snap point — no drift into letterboxed black between stages.
-  const t1 = `rotateY(${-8 * intoStage2}deg) scale(${1 + intoStage2 * 0.04})`;
-  const t2 = `rotateY(${8 * (1 - intoStage2) - 8 * intoStage3}deg) scale(${1 + (1 - intoStage2) * 0.04 + intoStage3 * 0.04})`;
-  const t3 = `rotateY(${8 * (1 - intoStage3)}deg) scale(${1 + (1 - intoStage3) * 0.04})`;
+  const stageLabels = ['Intact', 'Layered', 'Expanded'];
 
   return (
     <div className="relative w-full overflow-x-hidden bg-[hsl(220_30%_4%)] text-white">
