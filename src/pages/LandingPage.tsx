@@ -81,18 +81,21 @@ export default function LandingPage() {
     return x * x * (3 - 2 * x);
   };
 
+  const intoStage2 = ease((progress - 0.72) / 0.28);
+  const intoStage3 = ease((progress - 1.72) / 0.28);
+
   // Keep a fully opaque stage underneath the incoming frame so the scroll
   // transition never composites over the black page background.
   const op1 = progress < 1 ? 1 : 0;
-  const op2 = progress < 1 ? ease((progress - 0.72) / 0.28) : 1;
-  const op3 = progress < 1 ? 0 : ease((progress - 1.72) / 0.28);
+  const op2 = progress < 1 ? intoStage2 : 1;
+  const op3 = progress < 1 ? 0 : intoStage3;
 
   // Camera-rotation feel via 3D transforms per stage.
   // Each transform is centered on its own stage index so the image lands flat (0deg, scale 1)
   // exactly at its snap point — no drift into letterboxed black between stages.
-  const t1 = `rotateY(${progress * -10}deg) scale(${1 + progress * 0.04})`;
-  const t2 = `rotateY(${(progress - 1) * -10}deg) scale(${1 + Math.abs(progress - 1) * 0.04})`;
-  const t3 = `rotateY(${(progress - 2) * -10}deg) scale(${1 + Math.abs(progress - 2) * 0.04})`;
+  const t1 = `rotateY(${-8 * intoStage2}deg) scale(${1 + intoStage2 * 0.04})`;
+  const t2 = `rotateY(${8 * (1 - intoStage2) - 8 * intoStage3}deg) scale(${1 + (1 - intoStage2) * 0.04 + intoStage3 * 0.04})`;
+  const t3 = `rotateY(${8 * (1 - intoStage3)}deg) scale(${1 + (1 - intoStage3) * 0.04})`;
 
   return (
     <div className="relative w-full overflow-x-hidden bg-[hsl(220_30%_4%)] text-white">
