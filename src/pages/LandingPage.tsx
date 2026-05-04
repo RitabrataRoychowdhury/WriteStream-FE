@@ -75,10 +75,17 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Per-stage opacity using overlapping crossfades
-  const op1 = Math.max(0, 1 - Math.max(0, progress));            // 1 → 0 over [0,1]
-  const op2 = Math.max(0, 1 - Math.abs(progress - 1));           // peak at 1
-  const op3 = Math.max(0, Math.min(1, progress - 1));            // 0 → 1 over [1,2]
+  const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+  const ease = (value: number) => {
+    const x = clamp01(value);
+    return x * x * (3 - 2 * x);
+  };
+
+  // Keep a fully opaque stage underneath the incoming frame so the scroll
+  // transition never composites over the black page background.
+  const op1 = progress < 1 ? 1 : 0;
+  const op2 = progress < 1 ? ease((progress - 0.72) / 0.28) : 1;
+  const op3 = progress < 1 ? 0 : ease((progress - 1.72) / 0.28);
 
   // Camera-rotation feel via 3D transforms per stage.
   // Each transform is centered on its own stage index so the image lands flat (0deg, scale 1)
@@ -136,9 +143,9 @@ export default function LandingPage() {
             style={{ perspective: '1400px', perspectiveOrigin: '50% 50%' }}
           >
             {[
-              { src: heroStage1, op: op1, t: t1 },
-              { src: heroStage2, op: op2, t: t2 },
-              { src: heroStage3, op: op3, t: t3 },
+              { src: heroStage1, op: op1, t: t1, z: 1 },
+              { src: heroStage2, op: op2, t: t2, z: 2 },
+              { src: heroStage3, op: op3, t: t3, z: 3 },
             ].map((s, i) => (
               <div
                 key={i}
@@ -146,8 +153,9 @@ export default function LandingPage() {
                 style={{
                   opacity: s.op,
                   transform: s.t,
+                  zIndex: s.z,
                   transformStyle: 'preserve-3d',
-                  transition: 'opacity 120ms linear',
+                  transition: 'opacity 80ms linear',
                 }}
               >
                 <img
