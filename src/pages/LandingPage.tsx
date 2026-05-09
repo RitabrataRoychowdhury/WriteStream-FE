@@ -345,12 +345,12 @@ export default function LandingPage() {
         </div>
 
         {/* Snap targets — invisible 100vh sections that lock the scroll on each stage */}
-        {HERO_STAGES.map((stage) => (
+        {HERO_STAGES.map((stage, i) => (
           <section
             key={`snap-${stage.id}`}
             id={stage.id}
-            className="h-screen w-full pointer-events-none"
-            style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
+            className="absolute left-0 w-full h-screen pointer-events-none"
+            style={{ top: `${i * 100}vh`, scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
             aria-hidden
           />
         ))}
