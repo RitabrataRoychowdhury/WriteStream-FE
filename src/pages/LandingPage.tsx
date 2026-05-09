@@ -33,6 +33,8 @@ export default function LandingPage() {
   });
   const [fadeOut, setFadeOut] = useState(false);
   const [heroImagesReady, setHeroImagesReady] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const heroWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -87,6 +89,25 @@ export default function LandingPage() {
     html.style.scrollSnapType = 'y mandatory';
     return () => {
       html.style.scrollSnapType = prev;
+    };
+  }, []);
+
+  // Drive a continuous 0→2 progress from scroll across the hero wrap.
+  useEffect(() => {
+    const onScroll = () => {
+      const el = heroWrapRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const scrolled = Math.min(Math.max(-rect.top, 0), vh * 2);
+      setScrollProgress(scrolled / vh);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
   }, []);
 
