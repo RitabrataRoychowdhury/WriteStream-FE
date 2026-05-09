@@ -9,6 +9,21 @@ import { LandingSections } from '@/components/landing/LandingSections';
 
 const INTRO_KEY = 'ws_intro_played_v3';
 
+const HERO_STAGES = [
+  { id: 'stage-intact', src: heroStage1, label: 'The WriteStream Control Plane' },
+  { id: 'stage-layered', src: heroStage2, label: 'Layered execution paths' },
+  { id: 'stage-expanded', src: heroStage3, label: 'Expanded reactive architecture' },
+] as const;
+
+const preloadImage = (src: string) =>
+  new Promise<void>((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.decoding = 'async';
+    img.src = src;
+  });
+
 export default function LandingPage() {
   // Show intro once per session. Skip on reduced-motion.
   const [introDone, setIntroDone] = useState(() => {
@@ -17,7 +32,29 @@ export default function LandingPage() {
     return sessionStorage.getItem(INTRO_KEY) === '1';
   });
   const [fadeOut, setFadeOut] = useState(false);
+  const [heroImagesReady, setHeroImagesReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const links = HERO_STAGES.map((stage) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = stage.src;
+      document.head.appendChild(link);
+      return link;
+    });
+
+    Promise.all(HERO_STAGES.map((stage) => preloadImage(stage.src))).then(() => {
+      if (!cancelled) setHeroImagesReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+      links.forEach((link) => link.remove());
+    };
+  }, []);
 
   useEffect(() => {
     if (introDone) return;
@@ -88,11 +125,7 @@ export default function LandingPage() {
 
       {/* ───────── HERO — three snapped cinematic stages ───────── */}
       <div className="relative w-full">
-        {[
-          { id: 'stage-intact', src: heroStage1, label: 'The WriteStream Control Plane' },
-          { id: 'stage-layered', src: heroStage2, label: 'Layered execution paths' },
-          { id: 'stage-expanded', src: heroStage3, label: 'Expanded reactive architecture' },
-        ].map((stage, stageIndex) => (
+        {HERO_STAGES.map((stage, stageIndex) => (
           <section
             id={stage.id}
             key={stage.id}
@@ -102,9 +135,17 @@ export default function LandingPage() {
             <img
               src={stage.src}
               alt=""
-              className="absolute inset-0 z-0 h-full w-full object-cover"
+              loading="eager"
+              decoding="sync"
+              fetchPriority="high"
+              className={`absolute inset-0 z-0 h-full w-full object-cover transition-opacity duration-300 ${
+                heroImagesReady ? 'opacity-100' : 'opacity-0'
+              }`}
               draggable={false}
             />
+            {!heroImagesReady && stageIndex === 0 && (
+              <div className="absolute inset-0 z-0 bg-[hsl(220_30%_4%)]" aria-hidden />
+            )}
 
             {/* Cinematic overlays */}
             <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(220_40%_3%/0.45)_60%,hsl(220_40%_3%/0.9)_100%)] pointer-events-none" />
