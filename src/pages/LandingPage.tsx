@@ -18,9 +18,17 @@ const HERO_STAGES = [
 const preloadImage = (src: string) =>
   new Promise<void>((resolve) => {
     const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => resolve();
     img.decoding = 'async';
+    (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'high';
+    img.onload = () => {
+      // Force full decode so the first paint after scroll never blocks on it.
+      if (typeof img.decode === 'function') {
+        img.decode().then(() => resolve()).catch(() => resolve());
+      } else {
+        resolve();
+      }
+    };
+    img.onerror = () => resolve();
     img.src = src;
   });
 
@@ -177,6 +185,22 @@ export default function LandingPage() {
           {!heroImagesReady && (
             <div className="absolute inset-0 z-0 bg-[hsl(220_30%_4%)]" aria-hidden />
           )}
+
+          {/* Off-screen warm-up: forces GPU texture upload for every stage frame
+              before the user's first scroll, eliminating first-snap flicker. */}
+          <div aria-hidden className="pointer-events-none absolute -z-10 h-px w-px overflow-hidden opacity-0">
+            {HERO_STAGES.map((stage) => (
+              <img
+                key={`warm-${stage.id}`}
+                src={stage.src}
+                alt=""
+                loading="eager"
+                decoding="sync"
+                fetchPriority="high"
+                draggable={false}
+              />
+            ))}
+          </div>
 
           {/* Cinematic overlays */}
           <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(220_40%_3%/0.45)_60%,hsl(220_40%_3%/0.9)_100%)] pointer-events-none" />
