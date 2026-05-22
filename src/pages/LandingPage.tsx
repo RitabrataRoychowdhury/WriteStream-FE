@@ -3,34 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Activity, Github, ChevronDown } from 'lucide-react';
 import wsMark from '@/assets/writestream-mark.png';
 import heroStage1 from '@/assets/hero-stage-1.png';
-import heroStage2 from '@/assets/hero-stage-2.png';
-import heroStage3 from '@/assets/hero-stage-3.png';
 import { LandingSections } from '@/components/landing/LandingSections';
 
 const INTRO_KEY = 'ws_intro_played_v3';
-
-const HERO_STAGES = [
-  { id: 'stage-intact', src: heroStage1, label: 'The WriteStream Control Plane' },
-  { id: 'stage-layered', src: heroStage2, label: 'Layered execution paths' },
-  { id: 'stage-expanded', src: heroStage3, label: 'Expanded reactive architecture' },
-] as const;
-
-const preloadImage = (src: string) =>
-  new Promise<void>((resolve) => {
-    const img = new Image();
-    img.decoding = 'async';
-    (img as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'high';
-    img.onload = () => {
-      // Force full decode so the first paint after scroll never blocks on it.
-      if (typeof img.decode === 'function') {
-        img.decode().then(() => resolve()).catch(() => resolve());
-      } else {
-        resolve();
-      }
-    };
-    img.onerror = () => resolve();
-    img.src = src;
-  });
 
 export default function LandingPage() {
   // Show intro once per session. Skip on reduced-motion.
@@ -40,31 +15,7 @@ export default function LandingPage() {
     return sessionStorage.getItem(INTRO_KEY) === '1';
   });
   const [fadeOut, setFadeOut] = useState(false);
-  const [heroImagesReady, setHeroImagesReady] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const heroWrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const links = HERO_STAGES.map((stage) => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = stage.src;
-      document.head.appendChild(link);
-      return link;
-    });
-
-    Promise.all(HERO_STAGES.map((stage) => preloadImage(stage.src))).then(() => {
-      if (!cancelled) setHeroImagesReady(true);
-    });
-
-    return () => {
-      cancelled = true;
-      links.forEach((link) => link.remove());
-    };
-  }, []);
 
   useEffect(() => {
     if (introDone) return;
@@ -89,37 +40,6 @@ export default function LandingPage() {
     sessionStorage.setItem(INTRO_KEY, '1');
     setTimeout(() => setIntroDone(true), 700);
   };
-
-  // Enable snap on the root scroller while the hero is mounted
-  useEffect(() => {
-    const html = document.documentElement;
-    const prev = html.style.scrollSnapType;
-    html.style.scrollSnapType = 'y mandatory';
-    return () => {
-      html.style.scrollSnapType = prev;
-    };
-  }, []);
-
-  // Drive a continuous 0→2 progress from scroll across the hero wrap.
-  useEffect(() => {
-    const onScroll = () => {
-      const el = heroWrapRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const scrolled = Math.min(Math.max(-rect.top, 0), vh * 2);
-      setScrollProgress(scrolled / vh);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, []);
-
-  const stageLabels = ['Intact', 'Layered', 'Expanded'];
 
   return (
     <div className="relative w-full overflow-x-hidden bg-[hsl(220_30%_4%)] text-white">
@@ -152,55 +72,17 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* ───────── HERO — sticky cinematic stages with morphing crossfade ───────── */}
-      <div ref={heroWrapRef} className="relative w-full" style={{ height: '300vh' }}>
-        {/* Sticky canvas: all three images stacked, opacity & transform driven by scroll */}
-        <div className="sticky top-0 h-screen w-full overflow-hidden">
-          {HERO_STAGES.map((stage, i) => {
-            const d = scrollProgress - i;
-            const ad = Math.abs(d);
-            const opacity = Math.max(0, 1 - ad);
-            const scale = d <= 0 ? 1 - d * 0.05 : 1 + d * 0.07;
-            const blur = ad > 0.04 ? Math.min(ad * 5, 5) : 0;
-            const ty = d * 3;
-            return (
-              <img
-                key={`bg-${stage.id}`}
-                src={stage.src}
-                alt=""
-                loading="eager"
-                decoding="sync"
-                fetchPriority="high"
-                draggable={false}
-                className="absolute inset-0 z-0 h-full w-full object-cover will-change-[opacity,transform,filter]"
-                style={{
-                  opacity: heroImagesReady ? opacity : 0,
-                  transform: `scale(${scale}) translateY(${ty}%)`,
-                  filter: `blur(${blur}px)`,
-                  transition: 'opacity 90ms linear, filter 90ms linear',
-                }}
-              />
-            );
-          })}
-          {!heroImagesReady && (
-            <div className="absolute inset-0 z-0 bg-[hsl(220_30%_4%)]" aria-hidden />
-          )}
-
-          {/* Off-screen warm-up: forces GPU texture upload for every stage frame
-              before the user's first scroll, eliminating first-snap flicker. */}
-          <div aria-hidden className="pointer-events-none absolute -z-10 h-px w-px overflow-hidden opacity-0">
-            {HERO_STAGES.map((stage) => (
-              <img
-                key={`warm-${stage.id}`}
-                src={stage.src}
-                alt=""
-                loading="eager"
-                decoding="sync"
-                fetchPriority="high"
-                draggable={false}
-              />
-            ))}
-          </div>
+      {/* ───────── HERO — simple, fast, single static stage ───────── */}
+      <div className="relative w-full h-screen overflow-hidden">
+        <img
+          src={heroStage1}
+          alt=""
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+          draggable={false}
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+        />
 
           {/* Cinematic overlays */}
           <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(220_40%_3%/0.45)_60%,hsl(220_40%_3%/0.9)_100%)] pointer-events-none" />
@@ -214,7 +96,7 @@ export default function LandingPage() {
           />
           <div className="absolute -bottom-40 left-1/2 -translate-x-1/2 w-[1100px] h-[1100px] rounded-full bg-[radial-gradient(circle,hsl(14_90%_55%/0.18),transparent_60%)] blur-3xl z-10 pointer-events-none" />
 
-          {/* Sticky HUD overlay (per-stage chrome) */}
+          {/* HUD overlay */}
           <div className="absolute inset-0 z-20">
             {/* Top nav (always visible) */}
             <header className="relative flex items-center justify-between px-6 md:px-12 h-20 pointer-events-auto">
@@ -245,11 +127,8 @@ export default function LandingPage() {
               </a>
             </header>
 
-            {/* Stage 0 hero copy — fades out as we scroll */}
-            <main
-              className="relative flex flex-col items-center justify-center text-center px-6 min-h-[calc(100vh-5rem)] pb-24 pointer-events-auto"
-              style={{ opacity: Math.max(0, 1 - scrollProgress * 1.4) }}
-            >
+            {/* Hero copy */}
+            <main className="relative flex flex-col items-center justify-center text-center px-6 min-h-[calc(100vh-5rem)] pb-24 pointer-events-auto">
               <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-xl px-4 py-1.5 text-[11px] tracking-[0.18em] uppercase text-white/80 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.15),0_8px_32px_-8px_hsl(14_90%_55%/0.25)]">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[hsl(140_70%_55%)] opacity-75" />
@@ -299,7 +178,7 @@ export default function LandingPage() {
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
                 <a
-                  href="#stage-layered"
+                  href="#architecture"
                   className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-xl px-6 py-3 text-sm font-medium text-white/90 hover:bg-white/10 transition-colors shadow-[inset_0_1px_0_hsl(0_0%_100%/0.12)]"
                 >
                   See architecture
@@ -308,21 +187,6 @@ export default function LandingPage() {
               </div>
             </main>
 
-            {/* Stage labels for stages 1 & 2 — fade in around their snap points */}
-            {HERO_STAGES.slice(1).map((stage, idx) => {
-              const stageIndex = idx + 1;
-              const op = Math.max(0, 1 - Math.abs(scrollProgress - stageIndex) * 1.6);
-              return (
-                <div
-                  key={`label-${stage.id}`}
-                  className="absolute bottom-20 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-white/[0.06] px-6 py-2 text-[10px] uppercase tracking-[0.3em] text-white/70 backdrop-blur-2xl shadow-[inset_0_1px_0_hsl(0_0%_100%/0.12),0_24px_70px_-32px_hsl(14_90%_55%/0.55)] pointer-events-auto"
-                  style={{ opacity: op }}
-                >
-                  {stage.label}
-                </div>
-              );
-            })}
-
             {/* Footer meta */}
             <div className="absolute bottom-8 left-0 right-0 flex items-center justify-between px-8 md:px-14 text-[10px] tracking-[0.25em] uppercase text-white/35 font-mono pointer-events-auto">
               <span>WAL · Sharded · Reactive</span>
@@ -330,54 +194,16 @@ export default function LandingPage() {
               <span>2026 / Edition 01</span>
             </div>
 
-            {/* Scroll cue — hides as we approach the last stage */}
+            {/* Scroll cue */}
             <a
-              href={scrollProgress < 0.5 ? '#stage-layered' : '#stage-expanded'}
+              href="#architecture"
               className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 hover:text-white/80 transition-colors animate-float pointer-events-auto"
               aria-label="Scroll down"
-              style={{ opacity: Math.max(0, 1 - Math.max(0, scrollProgress - 1.4) * 2) }}
             >
               <span className="text-[10px] uppercase tracking-[0.3em] font-mono">Scroll</span>
               <ChevronDown className="h-4 w-4" />
             </a>
-
-            {/* Right-rail stage indicator */}
-            <div className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 flex flex-col gap-3 pointer-events-auto">
-              {stageLabels.map((label, i) => {
-                const active = Math.round(scrollProgress) === i;
-                return (
-                  <div key={label} className="flex items-center gap-3">
-                    <span
-                      className={`text-[9px] font-mono tracking-[0.25em] uppercase transition-colors ${
-                        active ? 'text-white/80' : 'text-white/30'
-                      }`}
-                    >
-                      {label}
-                    </span>
-                    <span
-                      className={`block h-px transition-all duration-500 ${
-                        active
-                          ? 'w-10 bg-[hsl(14_90%_55%)] shadow-[0_0_10px_hsl(14_90%_55%/0.8)]'
-                          : 'w-5 bg-white/20'
-                      }`}
-                    />
-                  </div>
-                );
-              })}
-            </div>
           </div>
-        </div>
-
-        {/* Snap targets — invisible 100vh sections that lock the scroll on each stage */}
-        {HERO_STAGES.map((stage, i) => (
-          <section
-            key={`snap-${stage.id}`}
-            id={stage.id}
-            className="absolute left-0 w-full h-screen pointer-events-none"
-            style={{ top: `${i * 100}vh`, scrollSnapAlign: 'start', scrollSnapStop: 'always' }}
-            aria-hidden
-          />
-        ))}
       </div>
 
 
